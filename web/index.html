@@ -1008,7 +1008,7 @@ function render(s){
   const sc=document.getElementById('summaryCard'),sb=document.getElementById('summaryBody');
   if(s.status==='summarizing'){
     sc.style.display='block';
-    sb.innerHTML='<div class="sp"><span class="spinner"></span>產生中文摘要中…</div>';
+    sb.innerHTML='<div class="sp"><span class="spinner"></span>產生中文摘要中…（完成後即可下載報告）</div>';
   }else if(s.status==='done'&&s.summary){
     sc.style.display='block';
     sb.innerHTML=s.summary.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -1069,7 +1069,8 @@ function render(s){
   });
   if(s.overall){const ov=document.getElementById('overallVal');ov.textContent=s.overall;ov.className='big pill '+pillClass(s.overall);}
   renderTraffic(s.domains||{},s.overall,'railTraffic');
-  document.getElementById('doneActions').style.display=(s.status==='done'||s.status==='summarizing')?'flex':'none';
+  // download only after the Chinese summary is ready (status 'done'), so the exported report always includes it
+  document.getElementById('doneActions').style.display=(s.status==='done')?'flex':'none';
   const dt=document.getElementById('doneTraffic');
   if(s.status==='done'||s.status==='summarizing'){renderTraffic(s.domains||{},s.overall,'doneTraffic');}else{dt.innerHTML='';}
 
