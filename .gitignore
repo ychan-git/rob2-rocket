@@ -1,0 +1,35 @@
+# secrets — never commit your API key
+.env
+*.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# uploaded trial PDFs (may be copyrighted / unpublished)
+uploads/
+*.pdf
+
+# os
+.DS_Store
+
+# ── public release = minimal runnable web app + README only ──────────────
+# Everything below stays on your machine and is NOT published.
+# (Editor/agent config)
+.claude/
+# Deprecated localhost (Python/Flask) version + its UI — superseded by web/
+*.py
+requirements.txt
+ui/
+docs/
+rob2_progress_ui.html
+# Root knowledge-base copy is redundant — the app uses web/rob2_knowledge.json
+/rob2_knowledge.json
+# Development / process / decision docs (not for public release)
+CLAUDE.md
+ROADMAP.md
+memory.md
+MIGRATION_PROGRESS.md
+web/CONTRACT.md

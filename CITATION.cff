@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this tool in your research, please cite it as below."
+title: "RoB 2 Rocket"
+abstract: >-
+  A browser-based tool that performs a Cochrane RoB 2 risk-of-bias assessment
+  for a single randomized-trial result, answering each signalling question with
+  a stateless model call and computing domain and overall judgements from the
+  official RoB 2 decision tables.
+type: software
+authors:
+  - family-names: Chen
+    given-names: Han Yen
+repository-code: "https://github.com/ychan-git/rob2-rocket"
+url: "https://github.com/ychan-git/rob2-rocket"
+license: MIT
+date-released: "2026-06-11"
+version: "1.0.0"

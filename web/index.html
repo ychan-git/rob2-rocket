@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoB 2 評讀進度</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6f9; --panel:#ffffff; --panel2:#eef1f6; --border:#dde3ec;
+    --text:#1f2a37; --muted:#5c6b7e; --faint:#94a1b2;
+    --low:#1a9d63; --some:#c98a09; --high:#d4493f; --na:#9aa6b4;
+    --accent:#2f6df0; --accent-dim:#cfe0ff;
+    --shadow:0 1px 3px rgba(20,40,80,.06),0 1px 2px rgba(20,40,80,.04);
+    --ui-zoom:1;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;zoom:var(--ui-zoom);
+    height:calc(100vh / var(--ui-zoom));overflow:hidden;display:flex;flex-direction:column}
+  header{flex:none}
+  header{padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+  header .title{font-size:13px;font-weight:700;color:var(--accent);flex:0 1 auto;min-width:60px;max-width:46ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header .meta{color:var(--muted);font-size:12px}
+  header .trunc{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header button{padding:6px 12px}
+  .zoomctl{display:inline-flex;align-items:center;gap:2px;flex:none}
+  .zoomctl button{padding:4px 9px;font-size:13px;line-height:1;min-width:28px}
+  .zoomctl .zlabel{font-size:11.5px;color:var(--faint);min-width:38px;text-align:center;font-variant-numeric:tabular-nums}
+  .badge{padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;border:1px solid var(--border);background:var(--panel2)}
+  .badge.model{color:var(--accent);border-color:var(--accent-dim);background:#f2f7ff}
+  .progbar{flex:1;min-width:160px;height:8px;background:var(--panel2);border-radius:6px;overflow:hidden}
+  .progbar > div{height:100%;background:linear-gradient(90deg,var(--accent),#6f8efb);width:0;transition:width .4s}
+  button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 15px;font-weight:600;cursor:pointer;font-size:13px;box-shadow:var(--shadow)}
+  button.ghost{background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:none}
+  button:disabled{opacity:.45;cursor:default}
+
+  .layout{display:grid;grid-template-columns:290px 1fr 300px;gap:0;flex:1;min-height:0}
+  .col{overflow-y:auto;padding:18px}
+  .sidebar{border-right:1px solid var(--border);background:var(--panel)}
+  .rail{border-left:1px solid var(--border);background:var(--panel)}
+  .sidebar h3,.rail h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:0 0 12px;font-weight:700}
+
+  .domain{margin-bottom:14px}
+  .domain .dname{font-size:12.5px;font-weight:600;margin-bottom:6px}
+  .qrow{display:flex;align-items:flex-start;gap:9px;padding:5px 8px;border-radius:6px;font-size:12.5px;color:var(--muted)}
+  .qrow .dot,.qrow .spinner{margin-top:4px}
+  .qrow .qid{font-variant-numeric:tabular-nums;min-width:26px;color:var(--faint);flex:none}
+  .qrow .qlabel{font-size:12px;line-height:1.35;flex:1;word-break:break-word}
+  .legend{font-size:12px;color:var(--muted);background:var(--panel2);border-radius:8px;padding:8px 10px;margin-bottom:14px;line-height:1.7}
+  .legend b{color:var(--text)}
+  .qrow.done{color:var(--text)}
+  .qrow.current{background:#eaf1ff;color:#1d4ed8;font-weight:600}
+  .qrow.na{opacity:.5}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex:none}
+  .qrow.done .dot{background:var(--low)}
+  .qrow.na .dot{background:var(--na)}
+  .qrow.current .dot{background:var(--accent);box-shadow:0 0 0 3px rgba(47,109,240,.18)}
+  .ans-chip{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--panel2);color:var(--muted)}
+  .spinner{width:11px;height:11px;border:2px solid var(--accent-dim);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* API-key card */
+  .keycard{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .keycard h2{margin:0 0 6px;font-size:15px}
+  .keycard .privacy{margin:0 0 12px;color:var(--muted);font-size:12.5px;line-height:1.6;background:var(--panel2);border-radius:8px;padding:9px 11px}
+  .keycard .privacy b{color:var(--text)}
+  .keyrow{display:flex;gap:8px;align-items:center}
+  .keyrow input{flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);font-family:"SF Mono",Menlo,Consolas,monospace}
+  .keystatus{font-size:12px;margin-top:8px;font-weight:600}
+  .keystatus.ok{color:var(--low)}
+  .keystatus.missing{color:var(--high)}
+  .rememberrow{display:flex;align-items:flex-start;gap:7px;margin-top:10px;font-size:12.5px;color:var(--muted);line-height:1.5;cursor:pointer}
+  .rememberrow input{margin-top:2px;flex:none}
+  .keytip{margin:12px 0 0;color:var(--muted);font-size:12.5px;line-height:1.6;background:var(--panel2);border-radius:8px;padding:9px 11px}
+  .keytip a{color:var(--accent);font-weight:600;white-space:nowrap}
+  .privacypanel{margin-top:12px;border:1px solid var(--border);border-radius:8px;background:var(--panel2);font-size:12.5px;line-height:1.6}
+  .privacypanel>summary{cursor:pointer;padding:9px 11px;font-weight:600;color:var(--text);user-select:none}
+  .privacypanel[open]>summary{border-bottom:1px solid var(--border)}
+  .privacypanel p{margin:0;padding:8px 11px;color:var(--muted)}
+  .privacypanel p+p{border-top:1px solid var(--border)}
+  .privacypanel a{color:var(--accent);font-weight:600}
+  .sitefoot{flex:none;padding:7px 16px;border-top:1px solid var(--border);background:var(--panel);
+    color:var(--faint);font-size:11.5px;display:flex;align-items:center;gap:10px}
+  .sitefoot a{color:var(--muted);text-decoration:none}
+  .sitefoot a:hover{text-decoration:underline}
+
+  .upload{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .upload h2{margin:0 0 6px;font-size:16px}
+  .upload p{margin:0 0 14px;color:var(--muted);font-size:12.5px}
+  .upload label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+  .upload input[type=text],.upload input[type=file],.upload select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg)}
+  .obtn{display:inline-flex;align-items:center;gap:7px;margin-top:8px}
+  .olist{margin-top:6px}
+  .orow{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:12.5px}
+  .orow:hover{background:var(--panel2)}
+  .otag{font-size:10.5px;font-weight:700;color:var(--accent);background:#eaf1ff;border-radius:5px;padding:1px 6px}
+  .hint{font-size:12px;color:var(--faint);margin-top:4px}
+  #startBtn{scroll-margin-bottom:12px}
+  .docwarn{margin-top:12px;padding:11px 13px;border-radius:10px;border:1px solid #f0c97a;
+    background:#fff7e6;color:#8a5a00;font-size:13px;line-height:1.55}
+  .docwarn b{color:#a4490a}
+
+  .flowwrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .flowwrap .fhead{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .flowwrap .fhead h3{margin:0;font-size:13px}
+  .flowwrap .ftabs{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+  .ftab{font-size:11.5px;padding:3px 9px;border-radius:7px;border:1px solid var(--border);background:var(--panel);cursor:pointer;color:var(--muted)}
+  .ftab.active{background:#eaf1ff;color:#1d4ed8;border-color:var(--accent-dim);font-weight:600}
+  .flowbox{overflow-x:auto;text-align:center;padding:14px 18px}
+  .flowbox svg{max-width:100%;height:auto;overflow:visible}
+  /* modern flowchart styling */
+  .flowbox .node rect,.flowbox .node polygon{rx:11px;ry:11px;stroke-width:1.4px;
+    filter:drop-shadow(0 1px 2px rgba(20,40,80,.10))}
+  .flowbox .node .nodeLabel,.flowbox .node .label{font-weight:600;font-size:13px;line-height:1.3;text-align:center}
+  .flowbox .node foreignObject>div{display:flex!important;align-items:center;justify-content:center;width:100%;height:100%}
+  .flowbox .node foreignObject p{margin:0}
+  /* base edge colour is set via mermaid `linkStyle default` so per-edge linkStyle can override it (no !important fight) */
+  .flowbox .edgeLabel,.flowbox .edgeLabel p,.flowbox .edgeLabel rect{
+    background:#f4f6f9!important;fill:#f4f6f9!important;color:#6a7686!important;font-size:11px}
+  .flowbox marker path{fill:#111111!important;stroke:#111111!important}
+  /* blinking current node */
+  .flowbox .cur rect,.flowbox .judge rect,.flowbox .judge polygon{animation:nodepulse 1.05s ease-in-out infinite}
+  @keyframes nodepulse{
+    0%,100%{filter:drop-shadow(0 0 2px rgba(47,109,240,.35))}
+    50%{filter:drop-shadow(0 0 7px rgba(47,109,240,.9))}}
+  .flegend{font-size:12px;color:var(--faint);margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+  .flegend span{display:inline-flex;align-items:center;gap:5px}
+  .sw{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid}
+  .sw.done{background:#e8f6ee;border-color:var(--low)}
+  .sw.cur{background:#eaf1ff;border-color:var(--accent)}
+  .sw.skip{background:#f1f3f7;border-color:#c2cad6;border-style:dashed}
+
+  .now-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:18px;box-shadow:var(--shadow);border-top:3px solid var(--accent)}
+  .now-card .lead{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin-bottom:8px;font-weight:600}
+  .now-card .qtext{font-size:17px;font-weight:650;line-height:1.45}
+  .now-card .elab{margin-top:10px;color:var(--muted);font-size:12.5px;border-left:3px solid var(--accent-dim);padding:8px 12px;white-space:pre-wrap;background:var(--panel2);border-radius:0 6px 6px 0}
+  .gtoggle{margin-top:10px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;user-select:none}
+  .gfull{margin-top:8px;max-height:240px;overflow-y:auto;display:none;font-size:12px;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:#fbfcfe}
+  .gfull.open{display:block}
+  .gfull h4{margin:10px 0 4px;font-size:12px;color:var(--accent)}
+  .gfull h4:first-child{margin-top:0}
+  .gfull p{margin:0 0 8px;white-space:pre-wrap}
+  .thinking{margin-top:14px;color:var(--accent);font-size:13px;display:flex;align-items:center;gap:9px;font-weight:600}
+  /* compact, centered completion state */
+  .now-card.done-mode{text-align:center;padding:16px 20px}
+  .now-card.done-mode .qtext{font-size:16px;margin-bottom:2px}
+  .now-card.done-mode #doneTraffic{margin-top:10px}
+  .now-card.done-mode #doneTraffic .tl{justify-content:center}
+
+  .summary-card{background:linear-gradient(180deg,#f2f7ff,#ffffff);border:1px solid var(--accent-dim);border-radius:14px;padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .summary-card .schead{font-size:14px;font-weight:700;color:#1d4ed8;margin-bottom:10px}
+  .summary-card .scbody{font-size:13.5px;line-height:1.85;color:var(--text);white-space:pre-wrap}
+  .summary-card .scbody .sp{display:flex;align-items:center;gap:9px;color:var(--accent);font-weight:600}
+
+  /* installer-style activity log */
+  .logwrap{background:#0f1b2d;border:1px solid #1c2a40;border-radius:12px;padding:12px 14px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .logwrap h3{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7d93b2;font-weight:700}
+  .logbox{height:170px;overflow-y:auto;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11.5px;line-height:1.65;color:#cfe0f5}
+  .logbox .l-step{color:#7fb0ff}
+  .logbox .l-ok{color:#7ee2a8}
+  .logbox .l-skip{color:#f0c674}
+  .logbox .l-sub{color:#6b80a0}
+  .logbox .l-err{color:#ff9b8f}
+
+  h3.hist{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:6px 0 12px;font-weight:700}
+  .hist-bar{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}
+  .hist-bar .hist{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700}
+  .exptoggle{font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;user-select:none}
+  .hist-item{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:13px 15px;margin-bottom:11px;box-shadow:var(--shadow)}
+  .hist-head{display:flex;align-items:center;gap:10px;cursor:pointer}
+  .hist-head .qid{font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+  .hist-head .qt{flex:1;font-size:13px}
+  .verdict{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:6px}
+  .v-YPY{background:#fdeceb;color:#c0392b}
+  .v-NPN{background:#e8f6ee;color:#147a4b}
+  .v-NI{background:#fbf3df;color:#9a6b06}
+  .v-NA{background:var(--panel2);color:var(--na)}
+  .hist-body{margin-top:11px;font-size:12.5px;display:none}
+  .hist-item.open .hist-body{display:block}
+  .quote{border-left:3px solid var(--accent-dim);padding:7px 12px;color:#33414f;background:var(--panel2);border-radius:0 6px 6px 0;font-style:italic;margin:4px 0 8px}
+  .qlbl{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
+  .rat{color:var(--muted)}
+  .caret{color:var(--faint);transition:transform .2s}
+  .hist-item.open .caret{transform:rotate(90deg)}
+
+  .judge{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border:1px solid var(--border);border-radius:10px;margin-bottom:9px;background:var(--panel)}
+  .judge .jn{font-size:12px}
+  .pill{font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:20px}
+  .pill.pending{background:var(--panel2);color:var(--faint);border:1px dashed var(--border)}
+  .pill.Low{background:#e8f6ee;color:var(--low)}
+  .pill.Some{background:#fbf3df;color:var(--some)}
+  .pill.High{background:#fdeceb;color:var(--high)}
+  .overall-box{margin-top:18px;padding:18px;border-radius:14px;border:1px solid var(--border);background:var(--panel);text-align:center;box-shadow:var(--shadow)}
+  .overall-box .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+  .overall-box .big{font-size:18px;font-weight:700;margin-top:10px;display:inline-block}
+  #doneActions{display:none;gap:10px;justify-content:center;margin:4px 0 18px}
+  #doneActions button{font-size:15px;padding:13px 24px}
+  #exportBtn{background:var(--accent)}
+  #exportBtn .bigdl{font-size:22px;font-weight:800;margin-right:4px;vertical-align:-2px}
+  #newBtn{border:1px solid var(--border)}
+  .dl-wrap{position:relative;display:inline-block}
+  .dl-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:176px;z-index:20;overflow:hidden}
+  .dl-menu.open{display:block}
+  .dl-item{padding:11px 16px;cursor:pointer;font-size:14px;white-space:nowrap}
+  .dl-item:hover{background:var(--panel2)}
+  #doneTraffic{margin-top:14px}
+  #doneTraffic .tl{justify-content:center;flex-wrap:nowrap;gap:14px}
+  #doneTraffic .tlc{width:36px;height:36px;font-size:19px}
+  #doneTraffic .tll{font-size:12px}
+  .tl{display:flex;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+  .tlcol{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .tlc{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px;border:2px solid #fff;box-shadow:var(--shadow)}
+  .tlc.pend{background:#e3e8ef;color:#9aa6b4}
+  .tlc.low{background:#1a9d63}
+  .tlc.some{background:#e0a800}
+  .tlc.high{background:#d4493f}
+  .tlc.big{width:31px;height:31px;font-size:17px}
+  .tll{font-size:10.5px;color:var(--muted);font-weight:600}
+  .tl-legend{font-size:10.5px;color:var(--faint);margin-bottom:16px;line-height:1.6}
+  .note{font-size:12px;color:var(--faint);margin-top:12px;line-height:1.6}
+  .usage{font-size:12px;color:var(--muted);margin-top:14px;background:var(--panel2);border-radius:8px;padding:9px 11px;line-height:1.7}
+</style>
+</head>
+<body>
+<header>
+  <span class="title" id="trialTitle">RoB 2</span>
+  <span class="meta trunc" id="trialMeta"></span>
+  <span class="badge model" id="modelBadge">⚙︎ —</span>
+  <div class="progbar"><div id="progFill"></div></div>
+  <span class="meta" id="progText">0 / 22</span>
+  <span class="zoomctl" title="調整介面字級／縮放">
+    <button class="ghost" id="zoomOut" aria-label="縮小">A−</button>
+    <span class="zlabel" id="zoomLabel">100%</span>
+    <button class="ghost" id="zoomIn" aria-label="放大">A+</button>
+  </span>
+  <button class="ghost" id="resetBtn">↻ 新評讀</button>
+</header>
+
+<div class="layout">
+  <div class="col sidebar" id="sidebar"><h3>訊號問題進度</h3></div>
+
+  <div class="col" id="center">
+    <div class="keycard" id="keyCard">
+      <h2>Anthropic API key</h2>
+      <label style="display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600">輸入你的 key（sk-ant-…）</label>
+      <div class="keyrow">
+        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+        <button class="ghost" id="keyShow" type="button" title="顯示／隱藏">👁</button>
+        <button class="ghost" id="keyClear" type="button">清除</button>
+      </div>
+      <label class="rememberrow"><input type="checkbox" id="rememberKey"><span>在這台裝置記住我的 key（寫入此瀏覽器；公用電腦請勿勾選）</span></label>
+      <div class="keystatus missing" id="keyStatus">尚未設定 key — 掃描與開始評讀會被鎖住。</div>
+      <p class="keytip">💡 建議到 Anthropic Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Anthropic Console</a></p>
+      <details class="privacypanel" id="privacyPanel">
+        <summary>🔒 隱私與安全說明</summary>
+        <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會送到 Anthropic（api.anthropic.com），從不送到我們或任何第三方。</p>
+        <p>原始碼公開：<a id="privacyRepoLink" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往 Anthropic。</p>
+        <p>本頁會連線的網域：api.anthropic.com（送出評讀請求）、esm.sh（載入 Anthropic SDK）、mermaid 的 CDN（畫流程圖）。</p>
+      </details>
+    </div>
+
+    <div class="upload" id="uploadPanel">
+      <h2>開始一次評讀</h2>
+      <p>RoB 2 評的是「單一試驗的單一結果」。請先指定要評讀哪個結局，再開始。你的 API key 留在本機瀏覽器，只會直接送往 Anthropic。</p>
+
+      <label>RCT PDF</label>
+      <input type="file" id="fPdf" accept="application/pdf">
+
+      <div class="obtn"><button class="ghost" id="scanBtn">🔍 掃描 outcome（單篇 RCT）</button><span class="hint" id="scanHint">讓 AI 掃描檔案、列出候選結局供你挑選</span></div>
+      <div id="docWarn" class="docwarn" style="display:none"></div>
+      <div id="scanResult" style="display:none">
+        <label>選擇要評讀的結局</label>
+        <div class="olist" id="outcomeList"></div>
+      </div>
+
+      <label>要評讀的結局（系統性回顧可直接填寫）</label>
+      <input type="text" id="fOutcome" placeholder="例如：6-minute walk distance at 30 days">
+
+      <label>試驗標題（掃描後自動帶入，可修改）</label>
+      <input type="text" id="fTitle" placeholder="掃描 outcome 後會自動填入；也可手動輸入">
+
+      <label>Effect of interest（效應類型）</label>
+      <select id="fEffect">
+        <option value="assignment">Assignment to intervention（ITT，預設）</option>
+        <option value="adhering">Adhering to intervention（per-protocol，進階）</option>
+      </select>
+      <div class="hint">不確定就用預設 ITT。選 per-protocol 時，Domain 2 會換成另一套訊號問題。</div>
+
+      <div style="margin-top:16px"><button id="startBtn">▶ 開始評讀</button></div>
+      <div id="upErr" style="color:var(--high);font-size:12.5px;margin-top:10px"></div>
+    </div>
+
+    <div class="flowwrap" id="flowWrap" style="display:none">
+      <div class="fhead">
+        <h3>RoB 2 流程圖</h3>
+        <div class="ftabs" id="ftabs"></div>
+      </div>
+      <div class="flowbox" id="flowbox"></div>
+      <div class="flegend">
+        <span><i class="sw done"></i>已回答</span>
+        <span><i class="sw cur"></i>進行中</span>
+        <span><i class="sw skip"></i>略過（流程未走到）</span>
+      </div>
+    </div>
+
+    <div class="now-card" id="nowCard" style="display:none">
+      <div class="lead"><span id="nowDomain"></span> · <span id="nowQid"></span></div>
+      <div class="qtext" id="nowQText">準備開始…</div>
+      <div class="elab" id="nowElab"></div>
+      <div class="gtoggle" id="gToggle" style="display:none">▸ 查看本題完整指引</div>
+      <div class="gfull" id="gFull"></div>
+      <div class="thinking" id="thinking" style="display:none"><span class="spinner"></span> <span id="thinkMsg"></span></div>
+      <div id="doneTraffic"></div>
+    </div>
+
+    <div id="doneActions" style="display:none">
+      <div class="dl-wrap">
+        <button id="exportBtn"><span class="bigdl">⤓</span> 下載 ▾</button>
+        <div class="dl-menu" id="dlMenu">
+          <div class="dl-item" id="dlMd">⤓ &nbsp;Markdown</div>
+          <div class="dl-item" id="dlPdf">🖨 &nbsp;列印 / 存 PDF</div>
+          <div class="dl-item" id="dlTxt">⤓ &nbsp;TXT 純文字</div>
+        </div>
+      </div>
+      <button class="ghost" id="newBtn">↻ 開始新評讀</button>
+      <button class="ghost" id="flowToggleBtn">▸ 顯示流程圖</button>
+    </div>
+
+    <div class="summary-card" id="summaryCard" style="display:none">
+      <div class="schead">📋 中文摘要：這篇論文的偏倚風險與 limitation</div>
+      <div class="scbody" id="summaryBody"></div>
+    </div>
+
+    <div class="hist-bar" id="histHead" style="display:none">
+      <span class="hist" id="histTitle">已完成題目（新→舊）</span>
+      <span class="exptoggle" id="expandToggle">展開全部</span>
+    </div>
+    <div id="history"></div>
+  </div>
+
+  <div class="col rail">
+    <h3>Domain 判斷</h3>
+    <div id="judges"></div>
+    <div class="overall-box">
+      <div class="lbl">Overall Risk of Bias</div>
+      <div class="big" id="overallVal">—</div>
+    </div>
+    <div class="note">Domain 與 overall 判斷由程式依官方演算法計算，非 AI 自由判斷。AI 僅負責單題回答（答案＋原文引述＋理由）。</div>
+    <div class="usage" id="usageBox" style="display:none"></div>
+  </div>
+</div>
+
+<footer class="sitefoot">
+  <a id="footRepoLink" href="#" target="_blank" rel="noopener">原始碼 (GitHub)</a>
+  <span id="buildInfo"></span>
+</footer>
+
+<script type="module">
+import { RoB2Engine, scanOutcomes } from "./engine.js";
+
+const REPO_URL = "https://github.com/ychan-git/rob2-rocket";
+
+/* ---------- question metadata (text + conditions + badges) ---------- */
+const DOMAINS=[
+ {id:1,name:"隨機化過程",qs:[
+   {id:"1.1",zh:"分配序列是否隨機產生？",t:"Was the allocation sequence random?"},
+   {id:"1.2",zh:"分配是否隱蔽到分組為止？",t:"Was the allocation sequence concealed until enrolment/assignment?"},
+   {id:"1.3",zh:"基線差異是否暗示隨機化有問題？",t:"Did baseline differences suggest a randomization problem?"},
+ ]},
+ {id:2,name:"偏離預定介入",qs:[
+   {id:"2.1",zh:"參與者是否知道自己的分組？",t:"Were participants aware of their assigned intervention?"},
+   {id:"2.2",zh:"照護／執行者是否知道分組？",t:"Were carers / deliverers aware of the assignment?"},
+   {id:"2.3",zh:"是否因試驗情境造成偏離？",t:"Deviations arising because of the trial context?",cond:"2.1/2.2 = Y/PY/NI"},
+   {id:"2.4",zh:"這些偏離是否可能影響結局？",t:"Were these deviations likely to have affected the outcome?",cond:"2.3 = Y/PY"},
+   {id:"2.5",zh:"這些偏離在兩組間是否平衡？",t:"Were these deviations balanced between groups?",cond:"2.4 = Y/PY/NI"},
+   {id:"2.6",zh:"是否用了適當分析（ITT）？",t:"Was an appropriate analysis used (effect of assignment)?"},
+   {id:"2.7",zh:"分析不當是否足以實質影響結果？",t:"Potential for substantial impact of mis-analysis?",cond:"2.6 = N/PN/NI"},
+ ]},
+ {id:3,name:"缺失結局資料",qs:[
+   {id:"3.1",zh:"幾乎所有受試者都有結局資料？",t:"Data available for all/nearly all randomized?"},
+   {id:"3.2",zh:"有證據顯示結果未被缺失資料扭曲？",t:"Evidence the result was not biased by missing data?",cond:"3.1 = N/PN/NI"},
+   {id:"3.3",zh:"缺失是否可能與真實值有關？",t:"Could missingness depend on its true value?",cond:"3.2 = N/PN"},
+   {id:"3.4",zh:"缺失是否很可能與真實值有關？",t:"Is it likely missingness depended on its true value?",cond:"3.3 = Y/PY/NI"},
+ ]},
+ {id:4,name:"結局測量",qs:[
+   {id:"4.1",zh:"結局測量方法是否不恰當？",t:"Was the method of measuring the outcome inappropriate?"},
+   {id:"4.2",zh:"兩組的測量是否可能不同？",t:"Could measurement have differed between groups?"},
+   {id:"4.3",zh:"結局評估者是否知道分組？",t:"Were outcome assessors aware of the intervention?",cond:"4.1 & 4.2 = N/PN/NI"},
+   {id:"4.4",zh:"評估是否可能受分組知情影響？",t:"Could assessment have been influenced by that knowledge?",cond:"4.3 = Y/PY/NI"},
+   {id:"4.5",zh:"評估是否很可能受影響？",t:"Is it likely assessment was influenced?",cond:"4.4 = Y/PY/NI"},
+ ]},
+ {id:5,name:"選擇性報告",qs:[
+   {id:"5.1",zh:"是否依事先計畫分析（解盲前定案）？",t:"Analysed per a pre-specified plan (before unblinding)?"},
+   {id:"5.2",zh:"是否從多個測量中挑選結果？",t:"Selected from multiple eligible outcome measurements?",badge:"PDF-only 限制"},
+   {id:"5.3",zh:"是否從多個分析中挑選結果？",t:"Selected from multiple eligible analyses?",badge:"PDF-only 限制"},
+ ]},
+];
+// domain-2 alternate question set for the per-protocol (adhering) effect
+const ADHERING_D2=[
+   {id:"2.1",zh:"參與者是否知道自己的分組？",t:"Were participants aware of their assigned intervention?"},
+   {id:"2.2",zh:"照護／執行者是否知道分組？",t:"Were carers / deliverers aware of the assignment?"},
+   {id:"2.3",zh:"重要的非計畫介入在兩組是否平衡？",t:"Were important non-protocol interventions balanced across groups?",cond:"2.1/2.2 = Y/PY/NI"},
+   {id:"2.4",zh:"是否有影響結局的實施失敗？",t:"Failures in implementing the intervention that could affect the outcome?"},
+   {id:"2.5",zh:"是否有影響結局的非依從？",t:"Non-adherence to the regimen that could affect outcomes?"},
+   {id:"2.6",zh:"是否用了適當的 per-protocol 分析？",t:"Appropriate analysis for the per-protocol effect?",cond:"2.3=N/PN/NI 或 2.4/2.5=Y/PY/NI"},
+];
+let EFFECT='assignment',DOMAINS_ACTIVE=DOMAINS,ORDER=[],QMAP={};
+function buildModel(effect){
+  EFFECT=effect==='adhering'?'adhering':'assignment';
+  DOMAINS_ACTIVE=DOMAINS.map(d=>{
+    if(d.id===2&&EFFECT==='adhering')return {id:2,name:"偏離預定介入",qs:ADHERING_D2};
+    return d;
+  });
+  ORDER=[];DOMAINS_ACTIVE.forEach(d=>d.qs.forEach(q=>ORDER.push({...q,dom:d.id,domName:d.name})));
+  QMAP={};ORDER.forEach(q=>QMAP[q.id]=q);
+}
+const grp=a=>["Y","PY"].includes(a)?"YPY":["N","PN"].includes(a)?"NPN":a;
+const pillClass=v=>v==="Some concerns"?"Some":v;
+
+/* Cochrane-style traffic lights */
+const TL={"Low":{c:"low",s:"+"},"Some concerns":{c:"some",s:"?"},"High":{c:"high",s:"−"}};
+function renderTraffic(domains,overall,elId){
+  const el=document.getElementById(elId||'trafficLights');if(!el)return;
+  let html='';
+  DOMAINS_ACTIVE.forEach(d=>{
+    const v=domains[d.id];const t=v?TL[v]:null;
+    html+=`<div class="tlcol"><div class="tlc ${t?t.c:'pend'}" title="D${d.id} ${v||'待計算'}">${t?t.s:''}</div><div class="tll">D${d.id}</div></div>`;
+  });
+  const t=overall?TL[overall]:null;
+  html+=`<div class="tlcol"><div class="tlc ${t?t.c:'pend'}" title="Overall ${overall||'待計算'}">${t?t.s:''}</div><div class="tll">總</div></div>`;
+  el.innerHTML='<div class="tl">'+html+'</div>';
+}
+
+/* official per-million-token USD pricing (5-min cache); cw=cache write, cr=cache read */
+const PRICING={
+  "claude-sonnet-4-6":{in:3,out:15,cw:3.75,cr:0.30},
+  "claude-haiku-4-5-20251001":{in:1,out:5,cw:1.25,cr:0.10},
+  "claude-opus-4-8":{in:5,out:25,cw:6.25,cr:0.50},
+  "claude-opus-4-7":{in:5,out:25,cw:6.25,cr:0.50},
+};
+let TWD=31.6;
+function costUSD(u,model){
+  const p=PRICING[model]||PRICING["claude-sonnet-4-6"];
+  return ((u.input||0)*p.in+(u.output||0)*p.out+(u.cache_write||0)*p.cw+(u.cache_read||0)*p.cr)/1e6;
+}
+
+/* ---------- Flowchart model: nodes + edges (with traversal conditions) per domain ----------
+   One structured model is the single source for BOTH the mermaid diagram AND which edges
+   were walked. Each edge carries a predicate over the answers; the predicate decides whether
+   that arrow is on the path actually taken, so we can highlight the route. (Domain/overall
+   *verdicts* stay in algorithm.js — this only governs the picture.)        */
+const nid=q=>"q"+q.replace(".","");
+// answer helpers (a = answers object): yes = Y/PY, no = N/PN, ni = NI, did = answered (not NA/skipped)
+const _A=(a,q)=>{const k=/^q\d\d$/.test(q)?q[1]+'.'+q[2]:q;return a[k]?a[k].answer:null;};
+const yes=(a,q)=>{const v=_A(a,q);return v==='Y'||v==='PY';};
+const no=(a,q)=>{const v=_A(a,q);return v==='N'||v==='PN';};
+const ni=(a,q)=>_A(a,q)==='NI';
+const did=(a,q)=>{const v=_A(a,q);return !!v&&v!=='NA';};
+// node: [id,label,isJudge]  edge: [from,to,label,whenTraversed(answers)]
+const GRAPH={
+ 1:{nodes:[['q11','1.1 序列是否隨機？'],['q12','1.2 分配是否隱蔽？'],['q13','1.3 基線差異暗示隨機化有問題？'],['J1','Domain 1 判斷',1]],
+    edges:[['q11','q12','',a=>did(a,'q11')],['q12','q13','',a=>did(a,'q12')],['q13','J1','',a=>did(a,'q13')]]},
+ 2:{nodes:[['q21','2.1 參與者知情？'],['q22','2.2 執行者知情？'],['q23','2.3 是否因試驗情境造成偏離？'],['q24','2.4 偏離是否影響結局？'],['q25','2.5 偏離在兩組是否平衡？'],['q26','2.6 分析是否適當（ITT）？'],['q27','2.7 分析不當是否實質影響結果？'],['J2','Domain 2 判斷',1]],
+    edges:[
+     ['q21','q22','',a=>did(a,'q21')],
+     ['q22','J2','皆 N/PN',a=>no(a,'q21')&&no(a,'q22')],
+     ['q22','q23','任一 Y/PY/NI',a=>did(a,'q22')&&!(no(a,'q21')&&no(a,'q22'))],
+     ['q23','J2','N/PN 或 NI',a=>no(a,'q23')||ni(a,'q23')],
+     ['q23','q24','Y/PY',a=>yes(a,'q23')],
+     ['q24','J2','N/PN',a=>no(a,'q24')],
+     ['q24','q25','Y/PY/NI',a=>yes(a,'q24')||ni(a,'q24')],
+     ['q25','J2','',a=>did(a,'q25')],
+     ['q26','J2','Y/PY',a=>yes(a,'q26')],
+     ['q26','q27','N/PN/NI',a=>no(a,'q26')||ni(a,'q26')],
+     ['q27','J2','',a=>did(a,'q27')]]},
+ 3:{nodes:[['q31','3.1 資料是否近乎完整？'],['q32','3.2 有證據顯示結果未被缺失影響？'],['q33','3.3 缺失是否可能與結果真值有關？'],['q34','3.4 缺失是否很可能與結果真值有關？'],['J3','Domain 3 判斷',1]],
+    edges:[
+     ['q31','J3','Y/PY',a=>yes(a,'q31')],
+     ['q31','q32','N/PN/NI',a=>no(a,'q31')||ni(a,'q31')],
+     ['q32','J3','Y/PY',a=>yes(a,'q32')],
+     ['q32','q33','N/PN',a=>no(a,'q32')],
+     ['q33','J3','N/PN',a=>no(a,'q33')],
+     ['q33','q34','Y/PY/NI',a=>yes(a,'q33')||ni(a,'q33')],
+     ['q34','J3','',a=>did(a,'q34')]]},
+ 4:{nodes:[['q41','4.1 測量方法是否不當？'],['q42','4.2 兩組測量是否不同？'],['q43','4.3 評估者是否知情？'],['q44','4.4 評估是否可能受知情影響？'],['q45','4.5 評估是否很可能受知情影響？'],['J4','Domain 4 判斷',1]],
+    edges:[
+     ['q41','q42','',a=>did(a,'q41')],
+     ['q42','J4','4.1或4.2 = Y/PY',a=>(yes(a,'q41')||yes(a,'q42'))&&!did(a,'q43')],
+     ['q42','q43','皆 N/PN/NI',a=>did(a,'q42')&&!(yes(a,'q41')||yes(a,'q42'))],
+     ['q43','J4','N/PN',a=>no(a,'q43')&&!did(a,'q44')],
+     ['q43','q44','Y/PY/NI',a=>yes(a,'q43')||ni(a,'q43')],
+     ['q44','J4','N/PN',a=>no(a,'q44')&&!did(a,'q45')],
+     ['q44','q45','Y/PY/NI',a=>yes(a,'q44')||ni(a,'q44')],
+     ['q45','J4','',a=>did(a,'q45')]]},
+ 5:{nodes:[['q51','5.1 是否依預定計畫分析？'],['q52','5.2 是否從多個測量中挑選結果？'],['q53','5.3 是否從多個分析中挑選結果？'],['J5','Domain 5 判斷',1]],
+    edges:[['q51','q52','',a=>did(a,'q51')],['q52','q53','',a=>did(a,'q52')],['q53','J5','',a=>did(a,'q53')]]},
+ adh2:{nodes:[['q21','2.1 參與者是否知情？'],['q22','2.2 執行者是否知情？'],['q23','2.3 非計畫介入是否平衡？'],['q24','2.4 實施失敗是否影響結局？'],['q25','2.5 是否有影響結局的非依從？'],['q26','2.6 分析是否適當（per-protocol）？'],['J2','Domain 2 判斷',1]],
+    edges:[
+     ['q21','q22','',a=>did(a,'q21')],
+     ['q22','q23','任一 Y/PY/NI',a=>did(a,'q22')&&!(no(a,'q21')&&no(a,'q22'))],
+     ['q22','q24','皆 N/PN',a=>no(a,'q21')&&no(a,'q22')],
+     ['q23','q24','',a=>did(a,'q23')],
+     ['q24','q25','',a=>did(a,'q24')],
+     ['q25','q26','有偏離疑慮',a=>did(a,'q26')],
+     ['q25','J2','無疑慮',a=>did(a,'q25')&&!did(a,'q26')],
+     ['q26','J2','',a=>did(a,'q26')]]},
+};
+function graphFor(domId){return (domId===2&&EFFECT==='adhering')?GRAPH.adh2:GRAPH[domId];}
+function flowDef(domId,answers,current,judging){
+  const g=graphFor(domId);
+  const _dr=(curState.domains||{})[domId];   // verdict available once domain is judged
+  let def="flowchart TD\n";
+  // nodes (generated from the model — labels live in one place)
+  g.nodes.forEach(([id,label,isJudge])=>{
+    if(isJudge&&_dr){
+      const vshort=_dr.replace(' risk','').replace(' concerns',' conc.');
+      def+=`  ${id}{{"${label}<br/><b>${vshort}</b>"}}\n`;
+    }else{
+      def+=isJudge?`  ${id}{{"${label}"}}\n`:`  ${id}["${label}"]\n`;
+    }
+  });
+  // edges (same order → linkStyle indices below line up automatically)
+  g.edges.forEach(([from,to,label])=>{def+=label?`  ${from}-->|"${label}"| ${to}\n`:`  ${from}-->${to}\n`;});
+  def+="classDef done fill:#1f9d57,stroke:#157a43,color:#ffffff;\n";
+  def+="classDef cur fill:#eaf1ff,stroke:#2f6df0,color:#1d4ed8,stroke-width:2px;\n";
+  def+="classDef judge fill:#eaf1ff,stroke:#2f6df0,color:#1d4ed8,stroke-width:2.5px;\n";
+  def+="classDef skip fill:#f1f3f7,stroke:#c2cad6,color:#9aa6b4,stroke-dasharray:4 3;\n";
+  def+="classDef pend fill:#ffffff,stroke:#dde3ec,color:#5c6b7e;\n";
+  def+="classDef jLow fill:#d1fae5,stroke:#1f9d57,color:#157a43,stroke-width:2.5px;\n";
+  def+="classDef jSome fill:#fef3c7,stroke:#d97706,color:#92400e,stroke-width:2.5px;\n";
+  def+="classDef jHigh fill:#fee2e2,stroke:#ef4444,color:#991b1b,stroke-width:2.5px;\n";
+  const dom=DOMAINS_ACTIVE.find(d=>d.id===domId);
+  dom.qs.forEach(q=>{
+    const a=answers[q.id];let cls="pend";
+    if(a&&a.answer==="NA")cls="skip";
+    else if(a)cls="done";
+    else if(current===q.id)cls="cur";
+    def+=`class ${nid(q.id)} ${cls};\n`;
+  });
+  // during the between-domain dwell, light up this domain's judgement box ("computing verdict")
+  if(_dr){const _dc=_dr.includes('Low')?'jLow':_dr.includes('High')?'jHigh':'jSome';def+=`class J${domId} ${_dc};\n`;}
+  else if(judging)def+=`class J${domId} judge;\n`;
+  def+="linkStyle default stroke:#d3d9e3,stroke-width:1.2px;\n";
+  g.edges.forEach((e,i)=>{if(e[3]&&e[3](answers))def+=`linkStyle ${i} stroke:#111111,stroke-width:3.5px;\n`;});
+  return def;
+}
+let flowTab=null,kb=null,autoFollow=true,curState={answers:{}},flowManual=false,flowDwell=false;
+async function drawFlow(domId,answers,current,judging){
+  flowTab=domId;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.toggle('active',+t.dataset.d===domId));
+  if(!MERMAID_OK){document.getElementById('flowbox').textContent='（流程圖元件未載入，其餘功能不受影響）';return;}
+  try{
+    const {svg}=await mermaid.render('mer'+domId+'_'+Date.now(),flowDef(domId,answers,current,judging));
+    document.getElementById('flowbox').innerHTML=svg;
+  }catch(e){document.getElementById('flowbox').textContent='（流程圖載入失敗）';}
+}
+function buildTabs(){
+  const el=document.getElementById('ftabs');el.innerHTML='';
+  DOMAINS.forEach(d=>{
+    const b=document.createElement('span');b.className='ftab';b.dataset.d=d.id;b.textContent='D'+d.id;
+    b.onclick=()=>{autoFollow=false;drawFlow(d.id,(curState.answers||{}),curState.current);};
+    el.appendChild(b);
+  });
+}
+
+/* ---------- sidebar + judges ---------- */
+const CODE_LEGEND='<div class="legend"><b>回答代號</b>　Y 是　PY 可能是　PN 可能否　N 否　NI 無資訊　NA 不適用（流程未走到）</div>';
+function buildSidebar(){
+  const el=document.getElementById('sidebar');el.innerHTML='<h3>訊號問題進度</h3>'+CODE_LEGEND;
+  DOMAINS_ACTIVE.forEach(d=>{
+    const box=document.createElement('div');box.className='domain';
+    box.innerHTML=`<div class="dname">Domain ${d.id}：${d.name}</div>`;
+    d.qs.forEach(q=>{
+      const row=document.createElement('div');row.className='qrow';row.id='row-'+q.id;
+      row.innerHTML=`<span class="dot"></span><span class="qid">${q.id}</span><span class="qlabel" title="${q.zh||''}">${q.zh||''}</span>`;
+      box.appendChild(row);
+    });
+    el.appendChild(box);
+  });
+}
+function buildJudges(){
+  const el=document.getElementById('judges');el.innerHTML='';
+  DOMAINS_ACTIVE.forEach(d=>el.insertAdjacentHTML('beforeend',
+    `<div class="judge"><span class="jn">D${d.id} ${d.name}</span><span class="pill pending" id="jp-${d.id}">待計算</span></div>`));
+}
+function rebuildAll(){buildSidebar();buildJudges();buildTabs();renderTraffic((curState&&curState.domains)||{},curState&&curState.overall);}
+
+// guard: if the mermaid CDN fails to load, don't let it break the rest of the app
+const MERMAID_OK=(typeof mermaid!=='undefined');
+if(MERMAID_OK){try{mermaid.initialize({startOnLoad:false,theme:'base',
+  themeVariables:{fontSize:'15px',fontFamily:'-apple-system,"PingFang TC","Microsoft JhengHei",Segoe UI,sans-serif',
+    lineColor:'#d3d9e3',primaryColor:'#ffffff',primaryBorderColor:'#dde3ec',primaryTextColor:'#1f2a37'},
+  flowchart:{useMaxWidth:true,htmlLabels:true,curve:'basis',nodeSpacing:34,rankSpacing:42,padding:16}});}catch(e){console.warn('mermaid init failed',e);}}
+buildModel('assignment');rebuildAll();
+document.getElementById('fEffect').onchange=e=>{buildModel(e.target.value);rebuildAll();drawFlow(2,{},null);};
+
+/* ---------- activity log ---------- */
+// activity log removed by request — the guidance panel already shows what we send the AI.
+let subTimer=null;
+function logLine(){}
+function startSubsteps(){}
+
+/* ---------- guidance (full text from rob2_knowledge.json) ---------- */
+function findQ(qid){
+  if(!kb)return null;
+  if(EFFECT==='adhering'&&qid[0]==='2'){
+    const q=(kb.domain2_adhering.questions||[]).find(x=>x.id===qid);
+    const d=kb.domains.find(x=>x.id===2);   // reuse domain-2 detailed guidance
+    if(q)return{q,d};
+  }
+  for(const d of kb.domains)for(const q of d.questions)if(q.id===qid)return{q,d};
+  return null;
+}
+function showGuidance(qid){
+  const tg=document.getElementById('gToggle'),gf=document.getElementById('gFull');
+  if(!kb){tg.style.display='none';return;}
+  const f=findQ(qid);if(!f){tg.style.display='none';return;}
+  const secs=f.q.relevant_guidance_sections||[];
+  let html='';
+  // elaboration always
+  document.getElementById('nowElab').textContent=
+    (f.q.condition?'【條件題：'+f.q.condition+' 時才評】\n':'')+f.q.elaboration;
+  // full relevant detailed-guidance sections
+  const lookup={};f.d.detailed_guidance.forEach(s=>lookup[s.section]=s);
+  secs.forEach(sec=>{if(lookup[sec])html+=`<h4>${lookup[sec].section} ${lookup[sec].title}</h4><p>${lookup[sec].text}</p>`;});
+  if(!html)html='<p class="rat">本題以上方 elaboration 為主要判準（無額外詳細小節）。</p>';
+  gf.innerHTML=html;gf.classList.remove('open');tg.textContent='▸ 查看本題完整指引';tg.style.display='block';
+}
+document.getElementById('gToggle').onclick=()=>{
+  const gf=document.getElementById('gFull'),tg=document.getElementById('gToggle');
+  gf.classList.toggle('open');
+  tg.textContent=(gf.classList.contains('open')?'▾ 收合指引':'▸ 查看本題完整指引');
+};
+
+/* ---------- API key ----------
+   Session-only by default: the key lives in an in-memory variable and is NOT
+   written to disk unless the user opts in via the "remember" checkbox. Everything
+   downstream reads getKey() → the in-memory variable, so the tool works even when
+   nothing is persisted. */
+const KEY_LS='rob2_api_key';
+let sessionKey='';                       // in-memory key for this session (source of truth)
+function getKey(){return (sessionKey||'').trim();}
+const apiKeyInput=document.getElementById('apiKey');
+const rememberCb=document.getElementById('rememberKey');
+function refreshKeyState(){
+  const k=getKey();
+  const st=document.getElementById('keyStatus');
+  if(k){
+    st.className='keystatus ok';
+    st.textContent=rememberCb.checked
+      ? '✓ key 已設定，並已記在這台瀏覽器（只會直接送往 Anthropic）。'
+      : '✓ key 已設定（僅此分頁，未寫入瀏覽器；只會直接送往 Anthropic）。';
+  }else{
+    st.className='keystatus missing';
+    st.textContent='尚未設定 key — 掃描與開始評讀會被鎖住。';
+  }
+  // gate scan/start until a key is present
+  const lock=!k;
+  document.getElementById('scanBtn').disabled=lock;
+  document.getElementById('startBtn').disabled=lock||(curState.status==='running'||curState.status==='summarizing');
+}
+// key input → always update in-memory key + gating; mirror to localStorage only if remembering
+apiKeyInput.addEventListener('input',()=>{
+  sessionKey=apiKeyInput.value.trim();
+  if(rememberCb.checked&&sessionKey)localStorage.setItem(KEY_LS,sessionKey);
+  else localStorage.removeItem(KEY_LS);
+  refreshKeyState();
+});
+// checkbox toggle: checked → persist current key; unchecked → forget on disk (keep in memory)
+rememberCb.addEventListener('change',()=>{
+  if(rememberCb.checked&&sessionKey)localStorage.setItem(KEY_LS,sessionKey);
+  else localStorage.removeItem(KEY_LS);
+  refreshKeyState();
+});
+document.getElementById('keyShow').onclick=()=>{
+  apiKeyInput.type=apiKeyInput.type==='password'?'text':'password';
+};
+document.getElementById('keyClear').onclick=()=>{
+  sessionKey='';
+  localStorage.removeItem(KEY_LS);
+  apiKeyInput.value='';apiKeyInput.type='password';
+  rememberCb.checked=false;
+  refreshKeyState();
+};
+// On load: if a key was persisted, prefill input, adopt it in memory, and check the box.
+(function initKey(){
+  const stored=(localStorage.getItem(KEY_LS)||'').trim();
+  if(stored){sessionKey=stored;apiKeyInput.value=stored;rememberCb.checked=true;}
+  // wire the repo links (footer + privacy panel) to the single REPO_URL constant
+  ['footRepoLink','privacyRepoLink'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
+})();
+
+/* ---------- PDF → base64 (strip the data: prefix) ---------- */
+function pdfToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>{
+      const s=String(r.result||'');
+      const i=s.indexOf('base64,');
+      resolve(i>=0?s.slice(i+7):s);
+    };
+    r.onerror=()=>reject(new Error('讀取 PDF 失敗'));
+    r.readAsDataURL(file);
+  });
+}
+
+/* ---------- scan outcomes (direct in-browser call) ---------- */
+document.getElementById('scanBtn').onclick=async()=>{
+  const f=document.getElementById('fPdf').files[0];
+  const err=document.getElementById('upErr');err.textContent='';
+  const apiKey=getKey();
+  if(!apiKey){err.textContent='請先在上方填入你的 Anthropic API key。';return;}
+  if(!f){err.textContent='請先選擇一個 PDF 檔。';return;}
+  const btn=document.getElementById('scanBtn');btn.disabled=true;
+  document.getElementById('scanHint').textContent='掃描中…（呼叫一次 AI 讀取全文）';
+  try{
+    const pdfBase64=await pdfToBase64(f);
+    const j=await scanOutcomes({apiKey,pdfBase64});
+    const list=document.getElementById('outcomeList');list.innerHTML='';
+    const outs=j.outcomes||[];
+    const addRow=o=>{
+      const row=document.createElement('label');row.className='orow';
+      row.innerHTML=`<input type="radio" name="oc" value="${o.name.replace(/"/g,'&quot;')}">`+
+        `<span>${o.name}</span>`+(o.primary?'<span class="otag">primary</span>':'');
+      row.querySelector('input').onchange=e=>{
+        document.getElementById('fOutcome').value=o.name;
+        // reveal the rest of the form (effect + start) so the next step is obvious
+        document.getElementById('startBtn').scrollIntoView({behavior:'smooth',block:'nearest'});
+      };
+      list.appendChild(row);
+    };
+    outs.forEach(addRow);
+    // Auto-fill the trial title from the scan, but never overwrite what the user typed.
+    const titleEl=document.getElementById('fTitle');
+    if(j.title&&!titleEl.value.trim())titleEl.value=j.title;
+    // 防呆: warn (but don't block) if the file isn't a completed RCT report
+    const warn=document.getElementById('docWarn');
+    if(j.doc_type&&j.doc_type!=='rct_report'){
+      const esc=t=>(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const label=j.doc_type==='protocol'?'試驗 protocol／計畫書（只有計畫、沒有結果）':'非隨機對照試驗（RCT）';
+      warn.innerHTML=`⚠️ <b>這份檔案看起來不是「有結果的 RCT 報告」</b>，AI 判斷為：${label}。`+
+        (j.doc_note?`<br>${esc(j.doc_note)}`:'')+
+        `<br>RoB 2 只適用於<b>有結果的隨機對照試驗</b>。請確認是否上傳錯檔；若確定無誤，仍可繼續評讀。`;
+      warn.style.display='block';
+    }else{warn.style.display='none';}
+    document.getElementById('scanResult').style.display='block';
+    document.getElementById('scanHint').textContent='點選一個結局，或在下方手動輸入';
+  }catch(e){err.textContent='掃描失敗：'+(e&&e.message?e.message:e);document.getElementById('scanHint').textContent='';}
+  refreshKeyState();   // re-enable scan (respects key gate)
+};
+
+/* ---------- start (run the engine directly in the browser) ---------- */
+let engine=null,abortCtl=null,trialMeta={};
+document.getElementById('startBtn').onclick=async()=>{
+  const f=document.getElementById('fPdf').files[0];
+  const err=document.getElementById('upErr');err.textContent='';
+  const apiKey=getKey();
+  if(!apiKey){err.textContent='請先在上方填入你的 Anthropic API key。';return;}
+  if(!f){err.textContent='請先選擇一個 PDF 檔。';return;}
+  const outcome=document.getElementById('fOutcome').value.trim();
+  if(!outcome){err.textContent='請先指定要評讀的結局（掃描挑選或手動輸入）。';return;}
+  const effect=document.getElementById('fEffect').value;
+  const title=document.getElementById('fTitle').value||f.name;
+  buildModel(effect);rebuildAll();
+  loggedStart={};loggedDone={};lastCurrent=null;lastDomainDrawn=null;autoFollow=true;lastGuidanceQid=null;flowManual=false;flowDwell=false;
+  document.getElementById('flowToggleBtn').textContent='▸ 顯示流程圖';
+  // trial metadata lives UI-side (the engine state carries `result` + `effect`, not a trial object)
+  trialMeta={title,outcome,effect};
+  document.getElementById('startBtn').disabled=true;
+  try{
+    const pdfBase64=await pdfToBase64(f);
+    abortCtl=new AbortController();
+    document.getElementById('uploadPanel').style.display='none';
+    document.getElementById('summaryCard').style.display='none';
+    ['flowWrap','nowCard','histHead'].forEach(id=>document.getElementById(id).style.display='block');
+    engine=new RoB2Engine({
+      apiKey,
+      kb,
+      pdfBase64,
+      resultOutcome:outcome,
+      effect,
+      onUpdate:(s)=>render(s),
+      signal:abortCtl.signal,
+    });
+    const final=await engine.run();
+    if(final)render(final);   // ensure the terminal state is painted
+  }catch(e){
+    if(abortCtl&&abortCtl.signal.aborted)return;   // user cancelled — clearAll() already handled the UI
+    render({...curState,status:'error',error:(e&&e.message?e.message:String(e))});
+  }finally{
+    engine=null;
+  }
+};
+
+/* ---------- render loop (driven directly by engine onUpdate) ---------- */
+let loggedStart={},loggedDone={},lastCurrent=null,lastDomainDrawn=null,lastGuidanceQid=null;
+function render(s){
+  // merge UI-side trial metadata: the contract state has no `trial` object, only `result`+`effect`
+  s={...s,trial:{title:trialMeta.title,outcome:s.result||trialMeta.outcome,effect:s.effect||trialMeta.effect}};
+  curState=s;
+  if(s.effect&&s.effect!==EFFECT){buildModel(s.effect);rebuildAll();}
+  document.getElementById('modelBadge').textContent='⚙︎ '+prettyModel(s.model);
+  if(s.trial&&s.trial.title){
+    const tt=document.getElementById('trialTitle');
+    tt.textContent=s.trial.title;tt.title=s.trial.title;   // full title on hover (header shows truncated)
+    const effLab=(s.trial.effect==='adhering')?'adhering to intervention (per-protocol)':'assignment to intervention';
+    document.getElementById('trialMeta').textContent='結局：'+(s.trial.outcome||'—')+' · 效應：'+effLab;
+  }
+  const ans=s.answers||{};
+  const doneCount=Object.keys(ans).length;
+  document.getElementById('progFill').style.width=(doneCount/ORDER.length*100)+'%';
+  document.getElementById('progText').textContent=doneCount+' / '+ORDER.length;
+
+  // sidebar
+  ORDER.forEach(q=>{
+    const row=document.getElementById('row-'+q.id);if(!row)return;
+    const zh=q.zh||'';
+    if(ans[q.id]){
+      const a=ans[q.id].answer;const isNA=a==='NA';
+      row.className='qrow '+(isNA?'na':'done');
+      row.innerHTML=`<span class="dot"></span><span class="qid">${q.id}</span><span class="qlabel" title="${zh}">${zh}</span><span class="ans-chip">${a}</span>`;
+    }else if(s.current===q.id){
+      row.className='qrow current';
+      row.innerHTML=`<span class="spinner"></span><span class="qid">${q.id}</span><span class="qlabel" title="${zh}">${zh}</span>`;
+    }else{
+      row.className='qrow';row.innerHTML=`<span class="dot"></span><span class="qid">${q.id}</span><span class="qlabel" title="${zh}">${zh}</span>`;
+    }
+  });
+
+  // log: new current
+  if(s.current&&s.current!==lastCurrent){
+    lastCurrent=s.current;
+    // follow the current question in the left progress column (only nudges if off-screen)
+    const curRow=document.getElementById('row-'+s.current);
+    if(curRow)curRow.scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(!loggedStart[s.current]){
+      loggedStart[s.current]=1;
+      const q=QMAP[s.current];
+      const f=kb?findQ(s.current):null;
+      const secs=f&&f.q.relevant_guidance_sections&&f.q.relevant_guidance_sections.length?' · 指引 '+f.q.relevant_guidance_sections.join(', '):'';
+      logLine('l-step',`Domain ${q.dom} · Q${s.current} — ${q.t}${secs}`);
+      startSubsteps(s.current);
+    }
+  }
+  // log: newly answered / skipped
+  Object.entries(ans).forEach(([qid,a])=>{
+    if(loggedDone[qid])return;loggedDone[qid]=1;clearInterval(subTimer);
+    if(a.answer==='NA'){
+      const cond=(QMAP[qid]&&QMAP[qid].cond)?` （條件：${QMAP[qid].cond} 未成立）`:'';
+      logLine('l-skip',`Q${qid} 略過 (NA)${cond}`);
+    }else{
+      logLine('l-ok',`Q${qid} = ${a.answer}　${(a.rationale||'').slice(0,70)}`);
+    }
+  });
+
+  // current card + guidance
+  if(s.current&&QMAP[s.current]){
+    const q=QMAP[s.current];
+    document.getElementById('nowCard').classList.remove('done-mode');
+    document.querySelector('#nowCard .lead').style.display='';
+    document.getElementById('nowElab').style.display='';
+    document.getElementById('nowDomain').textContent='Domain '+q.dom+'：'+q.domName;
+    document.getElementById('nowQid').textContent=q.id;
+    document.getElementById('nowQText').textContent=q.t;
+    if(q.id!==lastGuidanceQid){lastGuidanceQid=q.id;showGuidance(q.id);}
+    document.getElementById('thinking').style.display='flex';
+    document.getElementById('thinkMsg').textContent='AI 讀取（快取的）RCT 並評估第 '+q.id+' 題…';
+  }else if(s.status==='summarizing'){
+    document.getElementById('thinking').style.display='none';
+    document.getElementById('nowQText').textContent='✓ 22 題已回答完畢';
+    document.querySelector('#nowCard .lead').style.display='none';
+    document.getElementById('nowElab').style.display='none';
+    document.getElementById('nowElab').textContent='';
+    document.getElementById('gToggle').style.display='none';
+    document.getElementById('nowDomain').textContent='';document.getElementById('nowQid').textContent='';
+    if(!flowManual)document.getElementById('flowWrap').style.display='none';
+    if(!loggedDone.__fin){loggedDone.__fin=1;logLine('l-ok','全部完成 — 演算法已計算判斷，產生中文摘要中');}
+  }else if(s.status==='done'){
+    document.getElementById('thinking').style.display='none';
+    document.getElementById('nowQText').textContent='✓ 評讀完成 — 風險偏倚結果（紅綠燈）';
+    document.querySelector('#nowCard .lead').style.display='none';   // hide the stray " · " separator
+    document.getElementById('nowElab').style.display='none';         // hide the empty grey guidance bar
+    document.getElementById('nowElab').textContent='';
+    document.getElementById('gToggle').style.display='none';document.getElementById('gFull').classList.remove('open');
+    document.getElementById('nowCard').classList.add('done-mode');   // centre + compact
+    // completion view: prioritise traffic lights + download; summary goes below; flowchart tucked away
+    if(!flowManual)document.getElementById('flowWrap').style.display='none';
+  }else if(s.status==='error'){
+    document.getElementById('thinking').style.display='none';
+    document.getElementById('nowQText').textContent='⚠ 發生錯誤：'+(s.error||'未知');
+    if(!loggedDone.__err){loggedDone.__err=1;logLine('l-err',(s.error||'未知錯誤'));}
+  }
+
+  // chinese summary panel
+  const sc=document.getElementById('summaryCard'),sb=document.getElementById('summaryBody');
+  if(s.status==='summarizing'){
+    sc.style.display='block';
+    sb.innerHTML='<div class="sp"><span class="spinner"></span>產生中文摘要中…</div>';
+  }else if(s.status==='done'&&s.summary){
+    sc.style.display='block';
+    sb.innerHTML=s.summary.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');  // render **bold**; newlines kept via white-space:pre-wrap
+  }
+
+  // flowchart: auto-follow the current domain (with a ~1s dwell when a domain finishes,
+  // so the just-completed domain is visible before jumping to the next one)
+  const dom=s.current?QMAP[s.current].dom:((s.status==='done'||s.status==='summarizing')?5:1);
+  if(!autoFollow){
+    drawFlow(flowTab||dom,ans,s.current);
+  }else if(!flowDwell){
+    if(flowTab!=null&&dom!==flowTab){
+      flowDwell=true;
+      drawFlow(flowTab,ans,null,true);          // dwell: domain done, its judgement box lit up
+      const next=dom;
+      setTimeout(()=>{flowDwell=false;drawFlow(next,(curState.answers||{}),curState.current);},2500);
+    }else{
+      drawFlow(dom,ans,s.current);
+    }
+  }
+
+  // history — newest-first while running; ascending by question id once done (+ expanded)
+  const done=s.status==='done';
+  document.getElementById('histTitle').textContent=done?'已完成題目（依題號 1.1→）':'已完成題目（新→舊）';
+  const idx=q=>ORDER.findIndex(o=>o.id===q);
+  const items=Object.entries(ans).map(([qid,a])=>({qid,...a}))
+    .sort((x,y)=>done?(idx(x.qid)-idx(y.qid)):((y.ts||0)-(x.ts||0)));
+  const h=document.getElementById('history');
+  const sig=items.map(i=>i.qid+i.answer).join(',')+'|'+s.status;
+  if(sig!==render._sig){
+    render._sig=sig;h.innerHTML='';
+    document.getElementById('expandToggle').textContent=done?'收合全部':'展開全部';
+    items.forEach(it=>{
+      const q=QMAP[it.qid];const isNA=it.answer==='NA';
+      const vcls='v-'+(isNA?'NA':grp(it.answer));
+      const div=document.createElement('div');div.className='hist-item'+(done?' open':'');
+      div.innerHTML=`
+        <div class="hist-head" onclick="this.parentNode.classList.toggle('open')">
+          <span class="caret">▶</span><span class="qid">${it.qid}</span>
+          <span class="qt">${q?q.t:''}</span>
+          <span class="verdict ${vcls}">${it.answer}</span>
+        </div>
+        <div class="hist-body">
+          ${it.quote?`<div class="qlbl">原文（supporting quote）</div><div class="quote">${it.quote}</div>`:'<div class="rat" style="color:var(--faint)">（無相關原文引述）</div>'}
+          <div class="qlbl">理由（rationale）</div>
+          <div class="rat">${it.rationale||''}</div>
+          ${q&&q.badge?`<div class="rat" style="margin-top:6px;color:var(--some)">⚠ ${q.badge}</div>`:''}
+        </div>`;
+      h.appendChild(div);
+    });
+  }
+
+  // judgements
+  Object.entries(s.domains||{}).forEach(([d,v])=>{
+    const p=document.getElementById('jp-'+d);if(!p)return;
+    p.className='pill '+pillClass(v);p.textContent=v;
+  });
+  if(s.overall){const ov=document.getElementById('overallVal');ov.textContent=s.overall;ov.className='big pill '+pillClass(s.overall);}
+  renderTraffic(s.domains||{},s.overall);
+  document.getElementById('doneActions').style.display=(s.status==='done'||s.status==='summarizing')?'flex':'none';
+  const dt=document.getElementById('doneTraffic');
+  if(s.status==='done'||s.status==='summarizing'){renderTraffic(s.domains||{},s.overall,'doneTraffic');}else{dt.innerHTML='';}
+
+  // usage + cost
+  if(s.usage&&(s.usage.cache_read||s.usage.input)){
+    renderUsage(s.usage,s.model);
+  }
+}
+function renderUsage(u,model){
+  const box=document.getElementById('usageBox');box.style.display='block';
+  const usd=costUSD(u,model);const ntd=usd*TWD;
+  box.innerHTML=
+    `<b>Token 用量（本次評讀）</b><br>`+
+    `輸入：${(u.input||0).toLocaleString()}　輸出：${(u.output||0).toLocaleString()}<br>`+
+    `快取寫入：${(u.cache_write||0).toLocaleString()}　快取讀取：${(u.cache_read||0).toLocaleString()}（0.1×成本）<br>`+
+    `<b>估計成本</b>：US$${usd.toFixed(4)} ≈ <b>NT$${ntd.toFixed(2)}</b><br>`+
+    `<span style="color:var(--faint)">模型 ${prettyModel(model)}　匯率固定 1 USD ≈ ${TWD} TWD　（不含 outcome 掃描）</span>`;
+}
+
+/* ---------- Markdown export ---------- */
+function buildMarkdown(s){
+  const tr=s.trial||{};const ans=s.answers||{};
+  const date=new Date().toISOString().slice(0,10);
+  let md=`# RoB 2 風險偏倚評讀結果\n\n`;
+  const effLabel=(s.effect==='adhering'||tr.effect==='adhering')?'effect of adhering to intervention (per-protocol)':'effect of assignment to intervention (ITT)';
+  md+=`- **試驗**：${tr.title||'—'}\n- **評估結局**：${tr.outcome||'—'}\n`;
+  md+=`- **效應**：${effLabel}\n- **模型**：${prettyModel(s.model)}\n- **日期**：${date}\n\n`;
+  md+=`## 總體判斷（Overall）：**${s.overall||'—'}**\n\n`;
+  md+=`> Domain 與 overall 判斷由程式依 RoB 2 官方演算法計算；AI 僅回答訊號問題。\n\n`;
+  if(s.summary){md+=`## 中文摘要（給一般讀者）\n\n${s.summary}\n\n`;}
+  DOMAINS_ACTIVE.forEach(d=>{
+    md+=`## Domain ${d.id}：${d.name} — 判斷：**${(s.domains||{})[d.id]||'—'}**\n\n`;
+    d.qs.forEach(q=>{
+      const a=ans[q.id];if(!a)return;
+      md+=`### ${q.id} ${q.t}\n\n`;
+      if(a.answer==='NA'){
+        md+=`- **回答**：NA（略過）\n- **原因**：${a.rationale||'流程未走到此題'}`;
+        if(q.cond)md+=`（條件：${q.cond} 未成立）`;
+        md+=`\n\n`;
+      }else{
+        md+=`- **回答**：${a.answer}\n`;
+        if(a.quote)md+=`- **原文引述**：> ${a.quote.replace(/\n/g,' ')}\n`;
+        md+=`- **理由**：${a.rationale||''}\n`;
+        if(q.badge)md+=`- ⚠ ${q.badge}\n`;
+        md+=`\n`;
+      }
+    });
+  });
+  if(s.usage)md+=`---\n_Token 用量：輸入 ${s.usage.input||0} · 快取寫入 ${s.usage.cache_write||0} · 快取讀取 ${s.usage.cache_read||0} · 輸出 ${s.usage.output||0}_\n`;
+  return md;
+}
+// strip Markdown markers for a clean, immediately-readable plain-text version
+function mdToText(md){
+  return md
+    .replace(/^#{1,6}\s+/gm,'')      // headings → plain text
+    .replace(/\*\*(.+?)\*\*/g,'$1')  // **bold** → bold
+    .replace(/^>\s?/gm,'')           // blockquote / quote markers
+    .replace(/_([^_]+)_/g,'$1');     // _italic_ (token line) → italic
+}
+function safeName(){
+  const raw=(curState.trial&&curState.trial.title?curState.trial.title:'rob2');
+  // spaces are fine in filenames; only strip characters illegal on Windows/macOS, keep it readable
+  return raw.replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().slice(0,120).trim();
+}
+// turn a model id (claude-sonnet-4-6) into a friendly label (Claude Sonnet 4.6) for display
+function prettyModel(id){
+  if(!id)return '—';
+  const map={'claude-sonnet-4-6':'Claude Sonnet 4.6','claude-opus-4-8':'Claude Opus 4.8',
+    'claude-haiku-4-5':'Claude Haiku 4.5','claude-haiku-4-5-20251001':'Claude Haiku 4.5',
+    'claude-fable-5':'Claude Fable 5'};
+  if(map[id])return map[id];
+  const words=[],nums=[];
+  id.split('-').forEach(p=>{p.match(/^\d+$/)?nums.push(p):words.push(p.charAt(0).toUpperCase()+p.slice(1));});
+  return (words.join(' ')+(nums.length?' '+nums.join('.'):'')).trim()||id;
+}
+function downloadFile(content,mime,ext){
+  const blob=new Blob([content],{type:mime+';charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`RoB2 ${safeName()}.${ext}`;a.click();URL.revokeObjectURL(a.href);
+}
+document.getElementById('exportBtn').onclick=e=>{
+  e.stopPropagation();
+  document.getElementById('dlMenu').classList.toggle('open');
+};
+document.getElementById('dlMd').onclick=()=>{
+  document.getElementById('dlMenu').classList.remove('open');
+  downloadFile(buildMarkdown(curState),'text/markdown','md');
+};
+document.getElementById('dlTxt').onclick=()=>{
+  document.getElementById('dlMenu').classList.remove('open');
+  downloadFile(mdToText(buildMarkdown(curState)),'text/plain','txt');
+};
+document.addEventListener('click',()=>document.getElementById('dlMenu').classList.remove('open'));
+// minimal Markdown→HTML for the subset buildMarkdown() emits (headings, bold, quote, bullets, hr)
+function mdToHtml(md){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/_([^_]+)_/g,'<i>$1</i>');
+  let html='',inList=false;
+  const closeList=()=>{if(inList){html+='</ul>';inList=false;}};
+  md.split('\n').forEach(line=>{
+    if(/^---\s*$/.test(line)){closeList();html+='<hr>';return;}
+    let m;
+    if(m=line.match(/^(#{1,6})\s+(.*)$/)){closeList();const l=m[1].length;html+=`<h${l}>${inline(m[2])}</h${l}>`;return;}
+    if(/^>\s?/.test(line)){closeList();html+=`<blockquote>${inline(line.replace(/^>\s?/,''))}</blockquote>`;return;}
+    if(/^-\s+/.test(line)){if(!inList){html+='<ul>';inList=true;}html+=`<li>${inline(line.replace(/^-\s+/,''))}</li>`;return;}
+    if(line.trim()===''){closeList();return;}
+    closeList();html+=`<p>${inline(line)}</p>`;
+  });
+  closeList();return html;
+}
+const PRINT_CSS=`*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;color:#1f2a37;line-height:1.55;max-width:760px;margin:32px auto;padding:0 24px;font-size:14px}
+h1{font-size:22px;border-bottom:2px solid #2f6df0;padding-bottom:8px;color:#1d3a8a}
+h2{font-size:17px;margin-top:22px;color:#1d4ed8;border-bottom:1px solid #dde3ec;padding-bottom:4px}
+h3{font-size:14px;margin-top:16px}
+blockquote{margin:8px 0;padding:8px 12px;background:#f1f5ff;border-left:3px solid #2f6df0;color:#3a4658;font-size:13px}
+ul{padding-left:20px;margin:6px 0}li{margin:2px 0}p{margin:6px 0}
+hr{border:none;border-top:1px solid #dde3ec;margin:18px 0}
+@page{margin:16mm}`;
+document.getElementById('dlPdf').onclick=()=>{
+  document.getElementById('dlMenu').classList.remove('open');
+  const html=mdToHtml(buildMarkdown(curState));
+  const w=window.open('','_blank');
+  if(!w){alert('瀏覽器擋住了新視窗，請允許彈出視窗後再試一次。');return;}
+  w.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">`+
+    `<title>RoB2 ${safeName()}</title><style>${PRINT_CSS}</style></head><body>${html}</body></html>`);
+  w.document.close();w.focus();
+  setTimeout(()=>w.print(),300);   // give the new window a moment to lay out before printing
+};
+
+/* ---------- reset / new assessment ---------- */
+function clearAll(){
+  // wipe all UI state from the previous run (left list, flowchart, history, judgements, summary, usage)
+  curState={answers:{}};lastCurrent=null;lastDomainDrawn=null;lastGuidanceQid=null;autoFollow=true;
+  render._sig=null;loggedDone={};loggedStart={};trialMeta={};
+  buildModel(document.getElementById('fEffect').value||'assignment');rebuildAll();
+  document.getElementById('history').innerHTML='';
+  document.getElementById('overallVal').textContent='—';document.getElementById('overallVal').className='big';
+  document.getElementById('progFill').style.width='0';document.getElementById('progText').textContent='0 / 22';
+  document.getElementById('modelBadge').textContent='⚙︎ —';
+  {const tt=document.getElementById('trialTitle');tt.textContent='RoB 2';tt.title='';}document.getElementById('trialMeta').textContent='';
+  document.getElementById('summaryBody').innerHTML='';
+  document.getElementById('nowCard').classList.remove('done-mode');
+  document.querySelector('#nowCard .lead').style.display='';
+  document.getElementById('nowElab').style.display='';
+  ['flowWrap','nowCard','histHead','summaryCard','doneActions'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('usageBox').style.display='none';
+  document.getElementById('scanResult').style.display='none';
+  document.getElementById('docWarn').style.display='none';
+  document.getElementById('outcomeList').innerHTML='';
+  document.getElementById('fOutcome').value='';document.getElementById('fTitle').value='';document.getElementById('fPdf').value='';
+  document.getElementById('uploadPanel').style.display='block';
+  flowManual=false;flowDwell=false;document.getElementById('flowToggleBtn').textContent='▸ 顯示流程圖';
+  drawFlow(1,{},null);
+  document.getElementById('center').scrollTop=0;
+  refreshKeyState();   // restore the start/scan gate based on whether a key is present
+}
+function doReset(){
+  if(curState&&(curState.status==='running'||curState.status==='summarizing')){
+    if(!confirm('評讀進行中，確定要中止並清空嗎？')) return;
+  }
+  // cancel the in-flight engine run (mirrors the old /api/reset stop_event.set())
+  if(abortCtl){try{abortCtl.abort();}catch(e){}abortCtl=null;}
+  engine=null;
+  clearAll();
+}
+document.getElementById('resetBtn').onclick=doReset;
+document.getElementById('newBtn').onclick=doReset;
+document.getElementById('flowToggleBtn').onclick=()=>{
+  const fw=document.getElementById('flowWrap');const show=fw.style.display==='none';
+  fw.style.display=show?'block':'none';flowManual=show;
+  document.getElementById('flowToggleBtn').textContent=show?'▾ 隱藏流程圖':'▸ 顯示流程圖';
+};
+document.getElementById('expandToggle').onclick=()=>{
+  const items=[...document.querySelectorAll('#history .hist-item')];
+  const anyClosed=items.some(i=>!i.classList.contains('open'));
+  items.forEach(i=>i.classList.toggle('open',anyClosed));
+  document.getElementById('expandToggle').textContent=anyClosed?'收合全部':'展開全部';
+};
+
+/* ---------- UI zoom (A− / A+, persisted) ---------- */
+const ZOOM_MIN=0.9,ZOOM_MAX=1.3,ZOOM_STEP=0.1;
+let uiZoom=parseFloat(localStorage.getItem('rob2_zoom'))||1;
+function applyZoom(){
+  uiZoom=Math.min(ZOOM_MAX,Math.max(ZOOM_MIN,Math.round(uiZoom*10)/10));
+  document.documentElement.style.setProperty('--ui-zoom',uiZoom);
+  document.getElementById('zoomLabel').textContent=Math.round(uiZoom*100)+'%';
+  document.getElementById('zoomOut').disabled=uiZoom<=ZOOM_MIN;
+  document.getElementById('zoomIn').disabled=uiZoom>=ZOOM_MAX;
+  localStorage.setItem('rob2_zoom',uiZoom);
+}
+document.getElementById('zoomOut').onclick=()=>{uiZoom-=ZOOM_STEP;applyZoom();};
+document.getElementById('zoomIn').onclick=()=>{uiZoom+=ZOOM_STEP;applyZoom();};
+applyZoom();
+
+/* ---------- boot ---------- */
+(async()=>{
+  try{kb=await fetch("./rob2_knowledge.json").then(r=>r.json());}catch(e){kb=null;}
+  refreshKeyState();   // gate scan/start (key was prefilled by initKey() above)
+  drawFlow(1,{},null);
+})();
+</script>
+</body>
+</html>
