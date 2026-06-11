@@ -15,6 +15,11 @@
  * Cost control via prompt caching: the knowledge base (system) and the RCT PDF (document)
  * are cached blocks, written once and read for every question (~10% of normal input cost).
  *
+ * Provider seam: this core is provider-agnostic. It BUILDS prompt text, owns the run()
+ * flow / cancellation / usage accumulation / state shape, and delegates every API call
+ * to a provider adapter (web/providers/). The Anthropic adapter carries the exact
+ * relocated Claude calls and tool schemas, so Claude behaviour is byte-for-byte identical.
+ *
  * Browser adaptation (vs. engine.py):
  *   - No file/disk access: the KB object and the PDF base64 are passed into the constructor
  *     (the browser fetches the KB and reads the PDF via FileReader).
@@ -25,136 +30,11 @@
  */
 
 import { isApplicable, judgeDomain, judgeOverall } from "./algorithm.js";
-// Pinned for reproducibility — bump deliberately, not implicitly. Bare "@anthropic-ai/sdk"
-// resolves to the latest release, which could break this deployed static site on an SDK update.
-import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.104.1";
-
-// ---- step 0: scan the PDF for candidate outcomes (one lightweight call) -------
-const SCAN_TOOL = {
-  name: "list_outcomes",
-  description: "List the outcomes reported in this randomized trial.",
-  input_schema: {
-    type: "object",
-    properties: {
-      title: {
-        type: "string",
-        description:
-          "The full title of this trial report, exactly as printed " +
-          "(verbatim, including any subtitle such as ': A Randomized " +
-          "Clinical Trial'). Empty string if none can be found.",
-      },
-      doc_type: {
-        type: "string",
-        enum: ["rct_report", "protocol", "not_rct"],
-        description:
-          "Classify the document. 'rct_report' = a completed " +
-          "randomised controlled trial report that contains results " +
-          "(the only valid input for RoB 2). 'protocol' = a study " +
-          "protocol, statistical analysis plan, or trial registration " +
-          "entry describing a planned trial with NO results yet. " +
-          "'not_rct' = anything that is not a randomised controlled " +
-          "trial (e.g. observational/cohort study, systematic review " +
-          "or meta-analysis, narrative review, case report, guideline).",
-      },
-      doc_note: {
-        type: "string",
-        description:
-          "If doc_type is NOT 'rct_report', one short sentence in " +
-          "Traditional Chinese saying what the document appears to be " +
-          "and why. Empty string when doc_type is 'rct_report'.",
-      },
-      outcomes: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            name: {
-              type: "string",
-              description: "The outcome and, if stated, its measure and time point.",
-            },
-            primary: {
-              type: "boolean",
-              description: "True if the trial designates this as a primary outcome.",
-            },
-          },
-          required: ["name", "primary"],
-        },
-      },
-    },
-    required: ["title", "doc_type", "doc_note", "outcomes"],
-  },
-};
-
-// ---- structured-output tool for each signalling question ---------------------
-const ASSESS_TOOL = {
-  name: "submit_assessment",
-  description: "Submit the assessment for the single signalling question asked.",
-  input_schema: {
-    type: "object",
-    properties: {
-      answer: {
-        type: "string",
-        enum: ["Y", "PY", "PN", "N", "NI"],
-        description: "Y=Yes, PY=Probably yes, PN=Probably no, N=No, NI=No information",
-      },
-      quote: {
-        type: "string",
-        description:
-          "A verbatim quotation from the trial report supporting the answer. Empty if none.",
-      },
-      rationale: {
-        type: "string",
-        description:
-          "One or two sentences explaining the answer with reference to the guidance.",
-      },
-    },
-    required: ["answer", "quote", "rationale"],
-  },
-};
+import { createAdapter } from "./providers/index.js";
 
 const EFFECT_LABEL = {
   assignment: "effect of assignment to intervention (intention-to-treat effect)",
   adhering: "effect of adhering to intervention (per-protocol effect)",
-};
-
-// ---- one-call translator: English quote/rationale → Traditional Chinese -------
-const TRANSLATE_TOOL = {
-  name: "submit_translations",
-  description:
-    "Submit the Traditional-Chinese translations for every signalling question item.",
-  input_schema: {
-    type: "object",
-    properties: {
-      translations: {
-        type: "array",
-        description:
-          "One entry per input item, in the SAME order, preserving each item's id.",
-        items: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              description: "The question id, copied verbatim from the input item.",
-            },
-            quote_zh: {
-              type: "string",
-              description:
-                "Traditional-Chinese (Taiwan) translation of the item's quote. " +
-                "Empty string if the input quote was empty.",
-            },
-            rationale_zh: {
-              type: "string",
-              description:
-                "Traditional-Chinese (Taiwan) translation of the item's rationale. " +
-                "Empty string if the input rationale was empty.",
-            },
-          },
-          required: ["id", "quote_zh", "rationale_zh"],
-        },
-      },
-    },
-    required: ["translations"],
-  },
 };
 
 /**
@@ -162,70 +42,24 @@ const TRANSLATE_TOOL = {
  * in ONE API call (cost-saving: a single request covers all ~22 questions).
  *
  * @param {object}   opts
- * @param {string}   opts.apiKey  the user's Anthropic key
- * @param {Array}    opts.items   [{ id, quote, rationale }] — English; either field may be ""
- * @param {string}   [opts.model] defaults to claude-sonnet-4-6 (matches the rest of the app)
+ * @param {string}   opts.apiKey   the user's Anthropic key
+ * @param {Array}    opts.items    [{ id, quote, rationale }] — English; either field may be ""
+ * @param {string}   [opts.model]  defaults to claude-sonnet-4-6 (matches the rest of the app)
+ * @param {string}   [opts.provider] defaults to "anthropic"
  * @returns {Promise<Object>} map { [id]: { quote_zh, rationale_zh } } for easy lookup
  * @throws  {Error} on truncation or a missing tool_use reply, so the UI can surface it
  */
-export async function translateAnswers({ apiKey, items, model = "claude-sonnet-4-6" }) {
+export async function translateAnswers({
+  apiKey,
+  items,
+  model = "claude-sonnet-4-6",
+  provider = "anthropic",
+}) {
   const list = items || [];
   if (list.length === 0) return {};
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-  const payload = list.map((it) => ({
-    id: it.id,
-    quote: it.quote || "",
-    rationale: it.rationale || "",
-  }));
-  const prompt =
-    "以下是一篇隨機對照試驗依 Cochrane RoB 2 工具評讀後、每道訊號問題的「引用原文（quote）」" +
-    "與「理由（rationale）」，皆為英文。請把每一項的 quote 與 rationale 都忠實翻譯成" +
-    "「繁體中文（台灣用語）」：\n" +
-    "- 這是翻譯，不是摘要：請完整翻譯，不要省略、不要改寫成總結。\n" +
-    "- 維持臨床與方法學術語的準確；「risk of bias」一律譯為「偏誤風險」（請用「偏誤」，不要用「偏誤」）。\n" +
-    "- 若某一項的 quote 或 rationale 是空字串，對應的譯文也回傳空字串。\n" +
-    "- 每一項都要回傳，且 id 必須與輸入完全一致。\n" +
-    "請呼叫 submit_translations 工具回傳結果。\n\n" +
-    `輸入項目（JSON）：\n${JSON.stringify(payload, null, 2)}`;
-  const resp = await client.messages.create({
-    model,
-    max_tokens: 8000,
-    tools: [TRANSLATE_TOOL],
-    tool_choice: { type: "tool", name: "submit_translations" },
-    messages: [{ role: "user", content: prompt }],
-  });
-  // A truncated reply leaves the tool_use JSON incomplete (b.input comes back empty even
-  // though the call "succeeded") — treat that as a hard error so the UI can surface it.
-  if (resp.stop_reason === "max_tokens") {
-    throw new Error("翻譯被輸出長度上限截斷，請回報以便調高上限。");
-  }
-  let data = null;
-  for (const b of resp.content) {
-    if (b.type === "tool_use") data = b.input;
-  }
-  if (!data || !Array.isArray(data.translations)) {
-    throw new Error("翻譯失敗：模型未回傳結構化結果。");
-  }
-  const map = {};
-  for (const t of data.translations) {
-    if (t && t.id != null) {
-      map[t.id] = {
-        quote_zh: t.quote_zh || "",
-        rationale_zh: t.rationale_zh || "",
-      };
-    }
-  }
-  return map;
-}
-
-// Build a PDF document content block. scan uses cache=false → no cache_control.
-function pdfBlock(b64, cacheTtl, cache = true) {
-  const block = {
-    type: "document",
-    source: { type: "base64", media_type: "application/pdf", data: b64 },
-  };
-  if (cache) block.cache_control = { type: "ephemeral", ttl: cacheTtl };
-  return block;
+  const adapter = await createAdapter(provider, { apiKey, model });
+  const { translations } = await adapter.translate({ items: list });
+  return translations;
 }
 
 /**
@@ -239,70 +73,16 @@ function pdfBlock(b64, cacheTtl, cache = true) {
  * no outcome could be extracted) so the caller can surface a real error to the user
  * instead of silently showing an empty list.
  */
-export async function scanOutcomes({ apiKey, pdfBase64, model = "claude-sonnet-4-6" }) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-  const resp = await client.messages.create({
-    model,
-    max_tokens: 4000,
-    tools: [SCAN_TOOL],
-    tool_choice: { type: "tool", name: "list_outcomes" },
-    messages: [
-      {
-        role: "user",
-        content: [
-          pdfBlock(pdfBase64, "5m", false),
-          {
-            type: "text",
-            text:
-              "First classify this document (doc_type): is it a completed randomised " +
-              "controlled trial report with results, a protocol/plan with no results, or " +
-              "not an RCT at all? Then give its full title verbatim, and list every distinct " +
-              "outcome it reports (with measure and time point where given), flagging the " +
-              "primary ones. Do not invent outcomes.",
-          },
-        ],
-      },
-    ],
-  });
-  // A truncated reply leaves the tool_use JSON incomplete, so b.input comes back
-  // empty even though the call "succeeded". Treat that as a hard error, not [].
-  if (resp.stop_reason === "max_tokens") {
-    throw new Error(
-      "掃描被輸出長度上限截斷(這篇試驗的結局太多)。請改用手動輸入結局," +
-        "或回報以便調高上限。"
-    );
-  }
-  let data = {};
-  for (const b of resp.content) {
-    if (b.type === "tool_use") data = b.input;
-  }
-  const outcomes = data.outcomes || [];
-  const docType = data.doc_type || "rct_report";
-  // Only treat "no outcomes" as a hard error for a genuine RCT report (scanned image /
-  // unreadable). For a protocol / non-RCT we still return so the caller can show a
-  // warning instead.
-  if (docType === "rct_report" && outcomes.length === 0) {
-    throw new Error(
-      "無法從這份 PDF 擷取到任何結局(可能是掃描檔、純圖片、或不是試驗報告)。" +
-        "請改用手動輸入結局。"
-    );
-  }
-  // Sort primary outcomes first, then by name (mirrors Python's
-  // key=(not primary, name): primary -> 0 sorts before non-primary -> 1).
-  outcomes.sort((x, y) => {
-    const px = x.primary ? 0 : 1;
-    const py = y.primary ? 0 : 1;
-    if (px !== py) return px - py;
-    const nx = x.name || "";
-    const ny = y.name || "";
-    return nx < ny ? -1 : nx > ny ? 1 : 0;
-  });
-  return {
-    title: data.title || "",
-    outcomes,
-    doc_type: docType,
-    doc_note: data.doc_note || "",
-  };
+export async function scanOutcomes({
+  apiKey,
+  pdfBase64,
+  model = "claude-sonnet-4-6",
+  provider = "anthropic",
+  cacheTtl,
+}) {
+  const adapter = await createAdapter(provider, { apiKey, model, cacheTtl });
+  const { title, outcomes, doc_type, doc_note } = await adapter.scan({ pdfBase64 });
+  return { title, outcomes, doc_type, doc_note };
 }
 
 export class RoB2Engine {
@@ -314,6 +94,7 @@ export class RoB2Engine {
     effect = "assignment",
     model = "claude-sonnet-4-6",
     cacheTtl = "5m",
+    provider = "anthropic",
     onUpdate = () => {},
     signal,
   }) {
@@ -325,7 +106,9 @@ export class RoB2Engine {
     this.domains = this._activeDomains();
     this.systemText = this._buildSystemText();
     this.pdfB64 = pdfBase64;
-    this.client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+    // createAdapter is async (the seam for lazy per-provider loading later); the
+    // constructor stays sync, so we hold the promise and await it where the call is made.
+    this.adapterP = createAdapter(provider, { apiKey, model, cacheTtl });
     this.onUpdate = onUpdate || (() => {});
     this.signal = signal; // AbortSignal; aborted externally to cancel mid-run
     this.order = this.domains.flatMap((d) => d.questions.map((q) => q.id));
@@ -425,40 +208,22 @@ export class RoB2Engine {
 
   _accumulateUsage(u) {
     u = u || {};
-    this.state.usage.input += u.input_tokens || 0;
-    this.state.usage.cache_write += u.cache_creation_input_tokens || 0;
-    this.state.usage.cache_read += u.cache_read_input_tokens || 0;
-    this.state.usage.output += u.output_tokens || 0;
+    this.state.usage.input += u.input || 0;
+    this.state.usage.cache_write += u.cache_write || 0;
+    this.state.usage.cache_read += u.cache_read || 0;
+    this.state.usage.output += u.output || 0;
   }
 
   async _ask(qid) {
-    const resp = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 700,
-      system: [
-        {
-          type: "text",
-          text: this.systemText,
-          cache_control: { type: "ephemeral", ttl: this.cacheTtl },
-        },
-      ],
-      tools: [ASSESS_TOOL],
-      tool_choice: { type: "tool", name: "submit_assessment" },
-      messages: [
-        {
-          role: "user",
-          content: [
-            pdfBlock(this.pdfB64, this.cacheTtl, true),
-            { type: "text", text: this._questionPrompt(qid) },
-          ],
-        },
-      ],
+    const adapter = await this.adapterP;
+    const { answer, quote, rationale, usage } = await adapter.assess({
+      systemText: this.systemText,
+      pdfBase64: this.pdfB64,
+      questionPrompt: this._questionPrompt(qid),
+      signal: this.signal,
     });
-    this._accumulateUsage(resp.usage);
-    for (const block of resp.content) {
-      if (block.type === "tool_use") return block.input;
-    }
-    throw new Error(`No tool_use returned for ${qid}`);
+    this._accumulateUsage(usage);
+    return { answer, quote, rationale };
   }
 
   async run() {
@@ -532,19 +297,10 @@ export class RoB2Engine {
       "並解釋白話原因；(3) 若某些判斷受限於『只看全文、未取得 protocol』，請說明；" +
       "(4) 控制在約 200–350 字，不要逐題羅列，不要用 Markdown 標題。\n\n" +
       `評讀結果：\n${transcript}`;
-    const resp = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 800,
-      messages: [{ role: "user", content: prompt }],
-    });
-    const u = resp.usage || {};
-    this.state.usage.input += u.input_tokens || 0;
-    this.state.usage.output += u.output_tokens || 0;
-    return resp.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
+    const adapter = await this.adapterP;
+    const { text, usage } = await adapter.summarize({ prompt, signal: this.signal });
+    this._accumulateUsage(usage);
+    return text;
   }
 
   _maybeJudgeDomain(qid) {
