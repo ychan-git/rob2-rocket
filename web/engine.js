@@ -117,6 +117,107 @@ const EFFECT_LABEL = {
   adhering: "effect of adhering to intervention (per-protocol effect)",
 };
 
+// ---- one-call translator: English quote/rationale → Traditional Chinese -------
+const TRANSLATE_TOOL = {
+  name: "submit_translations",
+  description:
+    "Submit the Traditional-Chinese translations for every signalling question item.",
+  input_schema: {
+    type: "object",
+    properties: {
+      translations: {
+        type: "array",
+        description:
+          "One entry per input item, in the SAME order, preserving each item's id.",
+        items: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "The question id, copied verbatim from the input item.",
+            },
+            quote_zh: {
+              type: "string",
+              description:
+                "Traditional-Chinese (Taiwan) translation of the item's quote. " +
+                "Empty string if the input quote was empty.",
+            },
+            rationale_zh: {
+              type: "string",
+              description:
+                "Traditional-Chinese (Taiwan) translation of the item's rationale. " +
+                "Empty string if the input rationale was empty.",
+            },
+          },
+          required: ["id", "quote_zh", "rationale_zh"],
+        },
+      },
+    },
+    required: ["translations"],
+  },
+};
+
+/**
+ * Translate every answer's English `quote` and `rationale` into Traditional Chinese
+ * in ONE API call (cost-saving: a single request covers all ~22 questions).
+ *
+ * @param {object}   opts
+ * @param {string}   opts.apiKey  the user's Anthropic key
+ * @param {Array}    opts.items   [{ id, quote, rationale }] — English; either field may be ""
+ * @param {string}   [opts.model] defaults to claude-sonnet-4-6 (matches the rest of the app)
+ * @returns {Promise<Object>} map { [id]: { quote_zh, rationale_zh } } for easy lookup
+ * @throws  {Error} on truncation or a missing tool_use reply, so the UI can surface it
+ */
+export async function translateAnswers({ apiKey, items, model = "claude-sonnet-4-6" }) {
+  const list = items || [];
+  if (list.length === 0) return {};
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const payload = list.map((it) => ({
+    id: it.id,
+    quote: it.quote || "",
+    rationale: it.rationale || "",
+  }));
+  const prompt =
+    "以下是一篇隨機對照試驗依 Cochrane RoB 2 工具評讀後、每道訊號問題的「引用原文（quote）」" +
+    "與「理由（rationale）」，皆為英文。請把每一項的 quote 與 rationale 都忠實翻譯成" +
+    "「繁體中文（台灣用語）」：\n" +
+    "- 這是翻譯，不是摘要：請完整翻譯，不要省略、不要改寫成總結。\n" +
+    "- 維持臨床與方法學術語的準確；「risk of bias」一律譯為「偏誤風險」（請用「偏誤」，不要用「偏誤」）。\n" +
+    "- 若某一項的 quote 或 rationale 是空字串，對應的譯文也回傳空字串。\n" +
+    "- 每一項都要回傳，且 id 必須與輸入完全一致。\n" +
+    "請呼叫 submit_translations 工具回傳結果。\n\n" +
+    `輸入項目（JSON）：\n${JSON.stringify(payload, null, 2)}`;
+  const resp = await client.messages.create({
+    model,
+    max_tokens: 8000,
+    tools: [TRANSLATE_TOOL],
+    tool_choice: { type: "tool", name: "submit_translations" },
+    messages: [{ role: "user", content: prompt }],
+  });
+  // A truncated reply leaves the tool_use JSON incomplete (b.input comes back empty even
+  // though the call "succeeded") — treat that as a hard error so the UI can surface it.
+  if (resp.stop_reason === "max_tokens") {
+    throw new Error("翻譯被輸出長度上限截斷，請回報以便調高上限。");
+  }
+  let data = null;
+  for (const b of resp.content) {
+    if (b.type === "tool_use") data = b.input;
+  }
+  if (!data || !Array.isArray(data.translations)) {
+    throw new Error("翻譯失敗：模型未回傳結構化結果。");
+  }
+  const map = {};
+  for (const t of data.translations) {
+    if (t && t.id != null) {
+      map[t.id] = {
+        quote_zh: t.quote_zh || "",
+        rationale_zh: t.rationale_zh || "",
+      };
+    }
+  }
+  return map;
+}
+
 // Build a PDF document content block. scan uses cache=false → no cache_control.
 function pdfBlock(b64, cacheTtl, cache = true) {
   const block = {
@@ -424,9 +525,9 @@ export class RoB2Engine {
     }
     const transcript = lines.join("\n");
     const prompt =
-      "以下是一篇隨機對照試驗依 Cochrane RoB 2 工具完成的偏倚風險評讀結果" +
+      "以下是一篇隨機對照試驗依 Cochrane RoB 2 工具完成的偏誤風險評讀結果" +
       "（每題的答案與理由皆為英文）。請用「繁體中文」寫一段給一般讀者（非方法學專家）" +
-      "看的白話摘要，說明這篇論文在這個結局上的偏倚風險與主要 limitation 在哪裡、" +
+      "看的白話摘要，說明這篇論文在這個結局上的偏誤風險與主要 limitation 在哪裡、" +
       "為什麼。請：(1) 先用一句話總結 overall 風險；(2) 點出風險較高或有疑慮的 domain " +
       "並解釋白話原因；(3) 若某些判斷受限於『只看全文、未取得 protocol』，請說明；" +
       "(4) 控制在約 200–350 字，不要逐題羅列，不要用 Markdown 標題。\n\n" +

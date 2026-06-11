@@ -82,11 +82,17 @@
   .privacypanel p{margin:0;padding:8px 11px;color:var(--muted)}
   .privacypanel p+p{border-top:1px solid var(--border)}
   .privacypanel a{color:var(--accent);font-weight:600}
-  /* compact one-line summary shown after the key is confirmed */
-  .keysummary{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:13px;font-weight:600;color:var(--low);padding:2px 0 2px}
+  /* compact one-line summary shown after the key is confirmed — a single quiet line, no card chrome */
+  .keysummary{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12.5px;font-weight:500;color:var(--muted);margin-bottom:18px;padding:0}
+  .keysummary .ks-msg{font-weight:600;color:var(--text)}
   .keysummary .ks-sep{color:var(--faint);font-weight:400}
-  .keysummary .ks-link{background:none;border:none;box-shadow:none;color:var(--accent);font-weight:600;font-size:13px;padding:0 2px;cursor:pointer}
+  .keysummary .ks-link{background:none;border:none;box-shadow:none;color:var(--accent);font-weight:600;font-size:12.5px;padding:0 2px;cursor:pointer}
   .keysummary .ks-link:hover{text-decoration:underline}
+  /* popover privacy panel shown from the collapsed line */
+  .keysummary-wrap{position:relative;margin-bottom:18px}
+  .keysummary-wrap .keysummary{margin-bottom:0}
+  #privacyPopover{display:none;margin-top:8px}
+  #privacyPopover.open{display:block}
   #keyConfirm{padding:9px 14px;flex:none}
   .sitefoot{flex:none;padding:7px 16px;border-top:1px solid var(--border);background:var(--panel);
     color:var(--faint);font-size:11.5px;display:flex;align-items:center;gap:10px}
@@ -205,13 +211,20 @@
   #doneActions{display:none;gap:10px;justify-content:center;margin:4px 0 18px}
   #doneActions button{font-size:15px;padding:13px 24px}
   #exportBtn{background:var(--accent)}
-  #exportBtn .bigdl{font-size:22px;font-weight:800;margin-right:4px;vertical-align:-2px}
   #newBtn{border:1px solid var(--border)}
   .dl-wrap{position:relative;display:inline-block}
   .dl-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:176px;z-index:20;overflow:hidden}
   .dl-menu.open{display:block}
   .dl-item{padding:11px 16px;cursor:pointer;font-size:14px;white-space:nowrap}
   .dl-item:hover{background:var(--panel2)}
+  .dl-item.disabled{opacity:.45;cursor:default;pointer-events:none}
+  .dl-lang{padding:9px 16px 8px;border-bottom:1px solid var(--border);background:var(--panel2)}
+  .dl-lang-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:700;margin-bottom:5px}
+  .dl-lang-opt{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text);padding:3px 0;cursor:pointer}
+  .dl-lang-opt input{flex:none;margin:0}
+  .dl-status{padding:10px 16px;border-top:1px solid var(--border);font-size:12.5px;line-height:1.5;color:var(--muted);display:flex;align-items:center;gap:9px;white-space:normal;max-width:260px}
+  .dl-status.err{color:var(--high)}
+  .dl-status .spinner{flex:none}
   #doneTraffic{margin-top:14px}
   #doneTraffic .tl{justify-content:center;flex-wrap:nowrap;gap:14px}
   #doneTraffic .tlc{width:36px;height:36px;font-size:19px}
@@ -255,17 +268,29 @@
   <div class="col sidebar" id="sidebar"><h3>訊號問題進度</h3></div>
 
   <div class="col" id="center">
-    <div class="keycard" id="keyCard">
-      <h2>Anthropic API key</h2>
-      <!-- compact summary shown when the key is confirmed/collapsed -->
-      <div class="keysummary" id="keySummary" style="display:none">
-        <span class="ks-msg">✅ API key 已設定（只存在本瀏覽器）</span>
+    <!-- collapsed state: a single quiet line, no card chrome / heading / always-open privacy box -->
+    <div class="keysummary-wrap" id="keySummaryWrap" style="display:none">
+      <div class="keysummary" id="keySummary">
+        <span class="ks-msg">🔑 API key 已設定（只存在本瀏覽器）</span>
         <span class="ks-sep">｜</span>
         <button class="ks-link" id="keyChange" type="button">變更</button>
         <span class="ks-sep">｜</span>
         <button class="ks-link" id="keyClearCompact" type="button">清除</button>
+        <span class="ks-sep">｜</span>
+        <button class="ks-link" id="privacyToggle" type="button">🔒 隱私說明</button>
       </div>
-      <!-- editable bits: wrapped so they can be hidden together when collapsed -->
+      <details class="privacypanel" id="privacyPopover">
+        <summary>🔒 隱私與安全說明</summary>
+        <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會送到 Anthropic（api.anthropic.com），從不送到我們或任何第三方。</p>
+        <p>原始碼公開：<a id="privacyRepoLink2" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往 Anthropic。</p>
+        <p>本頁會連線的網域：api.anthropic.com（送出評讀請求）、esm.sh（載入 Anthropic SDK）、mermaid 的 CDN（畫流程圖）。</p>
+      </details>
+    </div>
+
+    <!-- full editor: shown when NO key is set, or when "變更" is clicked -->
+    <div class="keycard" id="keyCard">
+      <h2>Anthropic API key</h2>
+      <!-- editable bits -->
       <div class="keyedit" id="keyEdit">
         <label style="display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600">輸入你的 key（sk-ant-…）</label>
         <div class="keyrow">
@@ -277,13 +302,13 @@
         <label class="rememberrow"><input type="checkbox" id="rememberKey"><span>在這台裝置記住我的 key（寫入此瀏覽器；公用電腦請勿勾選）</span></label>
         <div class="keystatus missing" id="keyStatus">尚未設定 key — 掃描與開始評讀會被鎖住。</div>
         <p class="keytip">💡 建議到 Anthropic Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Anthropic Console</a></p>
+        <details class="privacypanel" id="privacyPanel">
+          <summary>🔒 隱私與安全說明</summary>
+          <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會送到 Anthropic（api.anthropic.com），從不送到我們或任何第三方。</p>
+          <p>原始碼公開：<a id="privacyRepoLink" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往 Anthropic。</p>
+          <p>本頁會連線的網域：api.anthropic.com（送出評讀請求）、esm.sh（載入 Anthropic SDK）、mermaid 的 CDN（畫流程圖）。</p>
+        </details>
       </div>
-      <details class="privacypanel" id="privacyPanel">
-        <summary>🔒 隱私與安全說明</summary>
-        <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會送到 Anthropic（api.anthropic.com），從不送到我們或任何第三方。</p>
-        <p>原始碼公開：<a id="privacyRepoLink" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往 Anthropic。</p>
-        <p>本頁會連線的網域：api.anthropic.com（送出評讀請求）、esm.sh（載入 Anthropic SDK）、mermaid 的 CDN（畫流程圖）。</p>
-      </details>
     </div>
 
     <div class="upload" id="uploadPanel">
@@ -342,11 +367,17 @@
 
     <div id="doneActions" style="display:none">
       <div class="dl-wrap">
-        <button id="exportBtn"><span class="bigdl">⤓</span> 下載 ▾</button>
+        <button id="exportBtn">下載 ▾</button>
         <div class="dl-menu" id="dlMenu">
-          <div class="dl-item" id="dlMd">⤓ &nbsp;Markdown</div>
-          <div class="dl-item" id="dlPdf">🖨 &nbsp;列印 / 存 PDF</div>
-          <div class="dl-item" id="dlTxt">⤓ &nbsp;TXT 純文字</div>
+          <div class="dl-lang" id="dlLang">
+            <div class="dl-lang-label">輸出語言</div>
+            <label class="dl-lang-opt"><input type="radio" name="dlLangChoice" value="en" checked><span>英文（原文）</span></label>
+            <label class="dl-lang-opt"><input type="radio" name="dlLangChoice" value="bi"><span>中英雙語</span></label>
+          </div>
+          <div class="dl-item" id="dlMd">Markdown</div>
+          <div class="dl-item" id="dlPdf">列印 / 存 PDF</div>
+          <div class="dl-item" id="dlTxt">TXT 純文字</div>
+          <div class="dl-status" id="dlStatus" style="display:none"></div>
         </div>
       </div>
       <button class="ghost" id="newBtn">↻ 開始新評讀</button>
@@ -354,7 +385,7 @@
     </div>
 
     <div class="summary-card" id="summaryCard" style="display:none">
-      <div class="schead">📋 中文摘要：這篇論文的偏倚風險與 limitation</div>
+      <div class="schead">📋 中文摘要：這篇論文的偏誤風險與 limitation</div>
       <div class="scbody" id="summaryBody"></div>
     </div>
 
@@ -367,7 +398,7 @@
 
   <div class="col rail">
     <h3>Domain 判斷</h3>
-    <!-- compact traffic lights: D1–D5 + 總, each with +/?/− glyph (colour-weak safe) -->
+    <!-- compact traffic lights: D1–D5 only (overall lives in the OVERALL box below), each with +/?/− glyph (colour-weak safe) -->
     <div id="railTraffic"></div>
     <div class="tl-legend" id="railLegend">＋ 低風險　? 部分疑慮　− 高風險</div>
     <div class="overall-box">
@@ -390,7 +421,7 @@
 </footer>
 
 <script type="module">
-import { RoB2Engine, scanOutcomes } from "./engine.js";
+import { RoB2Engine, scanOutcomes, translateAnswers } from "./engine.js";
 
 const REPO_URL = "https://github.com/ychan-git/rob2-rocket";
 
@@ -460,8 +491,12 @@ function renderTraffic(domains,overall,elId){
     const v=domains[d.id];const t=v?TL[v]:null;
     html+=`<div class="tlcol"><div class="tlc ${t?t.c:'pend'}" title="D${d.id} ${v||'待計算'}">${t?t.s:''}</div><div class="tll">D${d.id}</div></div>`;
   });
-  const t=overall?TL[overall]:null;
-  html+=`<div class="tlcol"><div class="tlc ${t?t.c:'pend'}" title="Overall ${overall||'待計算'}">${t?t.s:''}</div><div class="tll">總</div></div>`;
+  // The rail omits the overall ("總") column — overall already lives in the big OVERALL box.
+  // Other targets (e.g. #doneTraffic) keep showing it.
+  if(elId!=='railTraffic'){
+    const t=overall?TL[overall]:null;
+    html+=`<div class="tlcol"><div class="tlc ${t?t.c:'pend'}" title="Overall ${overall||'待計算'}">${t?t.s:''}</div><div class="tll">總</div></div>`;
+  }
   el.innerHTML='<div class="tl">'+html+'</div>';
 }
 
@@ -683,12 +718,16 @@ const rememberCb=document.getElementById('rememberKey');
 // touches sessionKey, rememberCb.checked, or localStorage.
 function collapseKeyCard(){
   if(!getKey())return;                 // only collapse when a key is actually set
-  document.getElementById('keyEdit').style.display='none';
-  document.getElementById('keySummary').style.display='flex';
+  // collapsed: hide the whole full-editor card, show just the slim one-line summary
+  document.getElementById('keyCard').style.display='none';
+  document.getElementById('keySummaryWrap').style.display='block';
 }
 function expandKeyCard(){
-  document.getElementById('keySummary').style.display='none';
-  document.getElementById('keyEdit').style.display='block';
+  document.getElementById('keySummaryWrap').style.display='none';
+  // re-collapse the popover so it doesn't occupy space next time
+  document.getElementById('privacyPopover').removeAttribute('open');
+  document.getElementById('privacyPopover').classList.remove('open');
+  document.getElementById('keyCard').style.display='block';
 }
 function refreshKeyState(){
   const k=getKey();
@@ -741,12 +780,19 @@ document.getElementById('keyConfirm').onclick=()=>{
 };
 // "變更": re-expand the full editable card (key/remember/localStorage unchanged).
 document.getElementById('keyChange').onclick=expandKeyCard;
+// "🔒 隱私說明" on the collapsed line: toggle the privacy explanation (occupies no space until clicked).
+document.getElementById('privacyToggle').onclick=()=>{
+  const pop=document.getElementById('privacyPopover');
+  const open=!pop.hasAttribute('open');
+  if(open){pop.setAttribute('open','');pop.classList.add('open');}
+  else{pop.removeAttribute('open');pop.classList.remove('open');}
+};
 // On load: if a key was persisted, prefill input, adopt it in memory, and check the box.
 (function initKey(){
   const stored=(localStorage.getItem(KEY_LS)||'').trim();
   if(stored){sessionKey=stored;apiKeyInput.value=stored;rememberCb.checked=true;}
   // wire the repo links (footer + privacy panel) to the single REPO_URL constant
-  ['footRepoLink','privacyRepoLink'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
+  ['footRepoLink','privacyRepoLink','privacyRepoLink2'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
   // start collapsed when a key is already present (remembered + rehydrated); else expanded
   if(getKey())collapseKeyCard();
 })();
@@ -834,6 +880,10 @@ document.getElementById('startBtn').onclick=async()=>{
     document.getElementById('uploadPanel').style.display='none';
     document.getElementById('summaryCard').style.display='none';
     ['flowWrap','nowCard','histHead'].forEach(id=>document.getElementById(id).style.display='block');
+    // jump back to the top of the live progress view (after picking from a long outcome list,
+    // the user may be scrolled far down — take them straight to the per-question progress)
+    document.getElementById('center').scrollTop=0;
+    window.scrollTo(0,0);
     engine=new RoB2Engine({
       apiKey,
       kb,
@@ -928,7 +978,8 @@ function render(s){
     document.getElementById('thinkMsg').textContent='AI 讀取（快取的）RCT 並評估第 '+q.id+' 題…';
   }else if(s.status==='summarizing'){
     document.getElementById('thinking').style.display='none';
-    document.getElementById('nowQText').textContent='✓ 22 題已回答完畢';
+    // fixed title — identical in summarizing + done states (summary progress lives in the summary area)
+    document.getElementById('nowQText').textContent='✓ 評讀完成 — 風險偏誤結果（紅綠燈）';
     document.querySelector('#nowCard .lead').style.display='none';
     document.getElementById('nowElab').style.display='none';
     document.getElementById('nowElab').textContent='';
@@ -938,7 +989,8 @@ function render(s){
     if(!loggedDone.__fin){loggedDone.__fin=1;logLine('l-ok','全部完成 — 演算法已計算判斷，產生中文摘要中');}
   }else if(s.status==='done'){
     document.getElementById('thinking').style.display='none';
-    document.getElementById('nowQText').textContent='✓ 評讀完成 — 風險偏倚結果（紅綠燈）';
+    // fixed title — same string as the summarizing state above (no status-driven change)
+    document.getElementById('nowQText').textContent='✓ 評讀完成 — 風險偏誤結果（紅綠燈）';
     document.querySelector('#nowCard .lead').style.display='none';   // hide the stray " · " separator
     document.getElementById('nowElab').style.display='none';         // hide the empty grey guidance bar
     document.getElementById('nowElab').textContent='';
@@ -1049,11 +1101,16 @@ document.getElementById('costToggle').onclick=()=>{
   btn.classList.toggle('on',show);
 };
 
-/* ---------- Markdown export ---------- */
-function buildMarkdown(s){
+/* ---------- Markdown export ----------
+   lang='en' → English (原文) only, unchanged behaviour.
+   lang='bi' → bilingual: each quote/rationale shown in English plus a 繁中 translation
+   (looked up from the `translations` map by qid). The Chinese summary stays as-is. */
+function buildMarkdown(s,lang){
+  const bi=lang==='bi';
+  const tx=bi?(translations||{}):{};
   const tr=s.trial||{};const ans=s.answers||{};
   const date=new Date().toISOString().slice(0,10);
-  let md=`# RoB 2 風險偏倚評讀結果\n\n`;
+  let md=`# RoB 2 風險偏誤評讀結果\n\n`;
   const effLabel=(s.effect==='adhering'||tr.effect==='adhering')?'effect of adhering to intervention (per-protocol)':'effect of assignment to intervention (ITT)';
   md+=`- **試驗**：${tr.title||'—'}\n- **評估結局**：${tr.outcome||'—'}\n`;
   md+=`- **效應**：${effLabel}\n- **模型**：${prettyModel(s.model)}\n- **日期**：${date}\n\n`;
@@ -1070,9 +1127,14 @@ function buildMarkdown(s){
         if(q.cond)md+=`（條件：${q.cond} 未成立）`;
         md+=`\n\n`;
       }else{
+        const z=tx[q.id]||{};
         md+=`- **回答**：${a.answer}\n`;
-        if(a.quote)md+=`- **原文引述**：> ${a.quote.replace(/\n/g,' ')}\n`;
+        if(a.quote){
+          md+=`- **原文引述**：> ${a.quote.replace(/\n/g,' ')}\n`;
+          if(bi&&z.quote_zh)md+=`- **引用（中文）**：> ${z.quote_zh.replace(/\n/g,' ')}\n`;
+        }
         md+=`- **理由**：${a.rationale||''}\n`;
+        if(bi&&z.rationale_zh)md+=`- **理由（中文）**：${z.rationale_zh}\n`;
         if(q.badge)md+=`- ⚠ ${q.badge}\n`;
         md+=`\n`;
       }
@@ -1110,19 +1172,78 @@ function downloadFile(content,mime,ext){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`RoB2 ${safeName()}.${ext}`;a.click();URL.revokeObjectURL(a.href);
 }
+/* ---------- download-language chooser + one-call translation cache ----------
+   dlLang: 'en' (英文原文, default — current behaviour) or 'bi' (中英雙語).
+   translations: cached { [qid]: { quote_zh, rationale_zh } }; built once via ONE
+   translateAnswers() call, reused on re-download, cleared in clearAll(). */
+let dlLang='en',translations=null,translating=false;
+document.querySelectorAll('input[name="dlLangChoice"]').forEach(r=>{
+  r.addEventListener('change',()=>{if(r.checked)dlLang=r.value;});
+});
+function setDlBusy(busy){
+  translating=busy;
+  ['dlMd','dlPdf','dlTxt'].forEach(id=>document.getElementById(id).classList.toggle('disabled',busy));
+}
+function showDlStatus(html,isErr){
+  const el=document.getElementById('dlStatus');
+  el.className='dl-status'+(isErr?' err':'');
+  el.innerHTML=html;el.style.display='flex';
+}
+function clearDlStatus(){const el=document.getElementById('dlStatus');el.style.display='none';el.innerHTML='';}
+// Ensure translations exist for bilingual export. Returns true when ready, false on
+// error / still-busy (caller should abort). Shows a spinner during the one API call.
+async function ensureTranslations(){
+  if(translations)return true;        // cached — no re-call
+  if(translating)return false;        // a call is already in flight
+  const apiKey=getKey();
+  if(!apiKey){showDlStatus('請先設定 API key 才能翻譯。',true);return false;}
+  const ans=(curState.answers)||{};
+  // build items from answers; NA / empty-quote questions still pass (engine returns empty)
+  const items=Object.entries(ans)
+    .filter(([,a])=>a.answer!=='NA')
+    .map(([id,a])=>({id,quote:a.quote||'',rationale:a.rationale||''}));
+  setDlBusy(true);
+  showDlStatus('<span class="spinner"></span>翻譯中…（一次性翻譯全部題目，約需數秒）',false);
+  try{
+    translations=await translateAnswers({apiKey,items});
+    clearDlStatus();
+    return true;
+  }catch(e){
+    translations=null;
+    showDlStatus('翻譯失敗：'+(e&&e.message?e.message:String(e)),true);
+    return false;
+  }finally{
+    setDlBusy(false);
+  }
+}
 document.getElementById('exportBtn').onclick=e=>{
   e.stopPropagation();
   document.getElementById('dlMenu').classList.toggle('open');
 };
-document.getElementById('dlMd').onclick=()=>{
+// A format click: build/export in the chosen language. For 中英雙語 we ensure the
+// (cached) translation first; the menu stays open while the spinner runs.
+async function doExport(fmt){
+  if(translating)return;
+  if(dlLang==='bi'){
+    const ok=await ensureTranslations();
+    if(!ok)return;   // error already shown near the download UI; do not crash
+  }
   document.getElementById('dlMenu').classList.remove('open');
-  downloadFile(buildMarkdown(curState),'text/markdown','md');
-};
-document.getElementById('dlTxt').onclick=()=>{
-  document.getElementById('dlMenu').classList.remove('open');
-  downloadFile(mdToText(buildMarkdown(curState)),'text/plain','txt');
-};
-document.addEventListener('click',()=>document.getElementById('dlMenu').classList.remove('open'));
+  clearDlStatus();
+  if(fmt==='md'){
+    downloadFile(buildMarkdown(curState,dlLang),'text/markdown','md');
+  }else if(fmt==='txt'){
+    downloadFile(mdToText(buildMarkdown(curState,dlLang)),'text/plain','txt');
+  }else if(fmt==='pdf'){
+    printPdf(buildMarkdown(curState,dlLang));
+  }
+}
+document.getElementById('dlMd').onclick=()=>doExport('md');
+document.getElementById('dlTxt').onclick=()=>doExport('txt');
+// Keep the dropdown open while interacting with the language chooser / status,
+// and while a translation is running; otherwise an outside click closes it.
+document.getElementById('dlMenu').addEventListener('click',e=>e.stopPropagation());
+document.addEventListener('click',()=>{if(!translating)document.getElementById('dlMenu').classList.remove('open');});
 // minimal Markdown→HTML for the subset buildMarkdown() emits (headings, bold, quote, bullets, hr)
 function mdToHtml(md){
   const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1149,22 +1270,28 @@ blockquote{margin:8px 0;padding:8px 12px;background:#f1f5ff;border-left:3px soli
 ul{padding-left:20px;margin:6px 0}li{margin:2px 0}p{margin:6px 0}
 hr{border:none;border-top:1px solid #dde3ec;margin:18px 0}
 @page{margin:16mm}`;
-document.getElementById('dlPdf').onclick=()=>{
-  document.getElementById('dlMenu').classList.remove('open');
-  const html=mdToHtml(buildMarkdown(curState));
+function printPdf(md){
+  const html=mdToHtml(md);
   const w=window.open('','_blank');
   if(!w){alert('瀏覽器擋住了新視窗，請允許彈出視窗後再試一次。');return;}
   w.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">`+
     `<title>RoB2 ${safeName()}</title><style>${PRINT_CSS}</style></head><body>${html}</body></html>`);
   w.document.close();w.focus();
   setTimeout(()=>w.print(),300);   // give the new window a moment to lay out before printing
-};
+}
+document.getElementById('dlPdf').onclick=()=>doExport('pdf');
 
 /* ---------- reset / new assessment ---------- */
 function clearAll(){
   // wipe all UI state from the previous run (left list, flowchart, history, judgements, summary, usage)
   curState={answers:{}};lastCurrent=null;lastDomainDrawn=null;lastGuidanceQid=null;autoFollow=true;
   render._sig=null;loggedDone={};loggedStart={};trialMeta={};
+  // reset the bilingual-download state: drop the cached translation and the busy flag,
+  // reset the language chooser back to 英文（原文）, and clear any status message
+  translations=null;translating=false;dlLang='en';
+  {const r=document.querySelector('input[name="dlLangChoice"][value="en"]');if(r)r.checked=true;}
+  setDlBusy(false);clearDlStatus();
+  document.getElementById('dlMenu').classList.remove('open');
   buildModel(document.getElementById('fEffect').value||'assignment');rebuildAll();
   document.getElementById('history').innerHTML='';
   document.getElementById('overallVal').textContent='—';document.getElementById('overallVal').className='big';
@@ -1185,6 +1312,7 @@ function clearAll(){
   document.getElementById('fOutcome').value='';document.getElementById('fTitle').value='';document.getElementById('fPdf').value='';
   document.getElementById('uploadPanel').style.display='block';
   flowManual=false;flowDwell=false;document.getElementById('flowToggleBtn').textContent='▸ 顯示流程圖';
+  restoreFlowHome();   // put the flowchart back above the now-card for the next run's live auto-follow
   drawFlow(1,{},null);
   document.getElementById('center').scrollTop=0;
   refreshKeyState();   // restore the start/scan gate based on whether a key is present
@@ -1200,8 +1328,28 @@ function doReset(){
 }
 document.getElementById('resetBtn').onclick=doReset;
 document.getElementById('newBtn').onclick=doReset;
+// Remember the flowchart's original DOM home so we can restore it for the next live run.
+// During an assessment the flowchart must sit ABOVE the current-question card (auto-follow);
+// only in the completion view do we relocate it to expand directly below the toggle/actions.
+const _flowHome={parent:document.getElementById('flowWrap').parentNode,
+                 next:document.getElementById('flowWrap').nextSibling};
+function restoreFlowHome(){
+  const fw=document.getElementById('flowWrap');
+  if(fw.parentNode!==_flowHome.parent||fw.nextSibling!==_flowHome.next){
+    _flowHome.parent.insertBefore(fw,_flowHome.next);
+  }
+}
 document.getElementById('flowToggleBtn').onclick=()=>{
   const fw=document.getElementById('flowWrap');const show=fw.style.display==='none';
+  const doneView=(curState.status==='done'||curState.status==='summarizing');
+  if(show&&doneView){
+    // in the completion view, move the flowchart to right after the completion actions
+    // so it expands downward instead of shoving the lights/download/summary down.
+    const da=document.getElementById('doneActions');
+    da.parentNode.insertBefore(fw,da.nextSibling);
+  }else if(!show){
+    restoreFlowHome();   // hiding again → put it back so the next live run is laid out correctly
+  }
   fw.style.display=show?'block':'none';flowManual=show;
   document.getElementById('flowToggleBtn').textContent=show?'▾ 隱藏流程圖':'▸ 顯示流程圖';
 };
