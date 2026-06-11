@@ -46,7 +46,8 @@ const EFFECT_LABEL = {
  * @param {Array}    opts.items    [{ id, quote, rationale }] — English; either field may be ""
  * @param {string}   [opts.model]  defaults to claude-sonnet-4-6 (matches the rest of the app)
  * @param {string}   [opts.provider] defaults to "anthropic"
- * @returns {Promise<Object>} map { [id]: { quote_zh, rationale_zh } } for easy lookup
+ * @returns {Promise<Object>} { translations: { [id]: { quote_zh, rationale_zh } },
+ *                              usage: { input, cache_write, cache_read, output } }
  * @throws  {Error} on truncation or a missing tool_use reply, so the UI can surface it
  */
 export async function translateAnswers({
@@ -56,10 +57,10 @@ export async function translateAnswers({
   provider = "anthropic",
 }) {
   const list = items || [];
-  if (list.length === 0) return {};
+  if (list.length === 0)
+    return { translations: {}, usage: { input: 0, cache_write: 0, cache_read: 0, output: 0 } };
   const adapter = await createAdapter(provider, { apiKey, model });
-  const { translations } = await adapter.translate({ items: list });
-  return translations;
+  return await adapter.translate({ items: list }); // { translations, usage }
 }
 
 /**

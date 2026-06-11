@@ -1079,18 +1079,25 @@ function render(s){
   }
 }
 function renderUsage(u,model){
-  const usd=costUSD(u,model);const ntd=usd*TWD;
+  const usd=costUSD(u,model);
+  const tusd=translationUsage?costUSD(translationUsage,TRANSLATE_MODEL):0;   // translation tokens cost money too
+  const totUsd=usd+tusd;const ntd=totUsd*TWD;
   // slim rail: show ONLY the total price up front; the detailed token breakdown
   // (the #usageBox) stays hidden behind the "?" toggle.
   const cl=document.getElementById('costLine');
-  document.getElementById('costVal').innerHTML=`估計成本 <b>NT$${ntd.toFixed(2)}</b>`;
+  document.getElementById('costVal').innerHTML=`估計成本 <b>NT$${ntd.toFixed(2)}</b>`+
+    (tusd?` <span style="color:var(--faint)">（含翻譯 NT$${(tusd*TWD).toFixed(2)}）</span>`:'');
   cl.style.display='flex';
   const box=document.getElementById('usageBox');   // detailed breakdown (visibility owned by the "?" toggle)
   box.innerHTML=
     `<b>Token 用量（本次評讀）</b><br>`+
     `輸入：${(u.input||0).toLocaleString()}　輸出：${(u.output||0).toLocaleString()}<br>`+
     `快取寫入：${(u.cache_write||0).toLocaleString()}　快取讀取：${(u.cache_read||0).toLocaleString()}（0.1×成本）<br>`+
-    `<b>估計成本</b>：US$${usd.toFixed(4)} ≈ <b>NT$${ntd.toFixed(2)}</b><br>`+
+    `評讀成本：US$${usd.toFixed(4)} ≈ NT$${(usd*TWD).toFixed(2)}<br>`+
+    (translationUsage
+      ? `<b>翻譯</b>（${prettyModel(TRANSLATE_MODEL)}）：輸入 ${(translationUsage.input||0).toLocaleString()}　輸出 ${(translationUsage.output||0).toLocaleString()}　≈ NT$${(tusd*TWD).toFixed(2)}<br>`
+      : '')+
+    `<b>合計</b>：US$${totUsd.toFixed(4)} ≈ <b>NT$${ntd.toFixed(2)}</b><br>`+
     `<span style="color:var(--faint)">模型 ${prettyModel(model)}　匯率固定 1 USD ≈ ${TWD} TWD　（不含 outcome 掃描）</span>`;
 }
 // "?" toggle: reveal / hide how the cost is computed (per-token usage breakdown)
@@ -1116,12 +1123,20 @@ function buildMarkdown(s,lang){
   md+=`- **效應**：${effLabel}\n- **模型**：${prettyModel(s.model)}\n- **日期**：${date}\n\n`;
   md+=`## 總體判斷（Overall）：**${s.overall||'—'}**\n\n`;
   md+=`> Domain 與 overall 判斷由程式依 RoB 2 官方演算法計算；AI 僅回答訊號問題。\n\n`;
+  // 紅綠燈：emoji 給顏色、字母（+/?/−）與文字標籤給色弱者非顏色線索
+  const LIGHT=j=>({'Low':'🟢','Some concerns':'🟡','High':'🔴'}[j]||'⚪');
+  const GLYPH=j=>({'Low':'+','Some concerns':'?','High':'−'}[j]||'·');
+  md+=`## 風險偏誤紅綠燈\n\n`;
+  DOMAINS_ACTIVE.forEach(d=>{const j=(s.domains||{})[d.id]||'—';md+=`- ${LIGHT(j)} [${GLYPH(j)}] Domain ${d.id} ${d.name}：**${j}**\n`;});
+  md+=`- ${LIGHT(s.overall)} [${GLYPH(s.overall)}] **總體（Overall）：${s.overall||'—'}**\n\n`;
   if(s.summary){md+=`## 中文摘要（給一般讀者）\n\n${s.summary}\n\n`;}
   DOMAINS_ACTIVE.forEach(d=>{
     md+=`## Domain ${d.id}：${d.name} — 判斷：**${(s.domains||{})[d.id]||'—'}**\n\n`;
     d.qs.forEach(q=>{
       const a=ans[q.id];if(!a)return;
-      md+=`### ${q.id} ${q.t}\n\n`;
+      md+=`### ${q.id} ${q.t}\n`;
+      if(bi)md+=`**中文題目**：${q.zh}\n`;   // 官方中文題目（不需 API 翻譯）
+      md+=`\n`;
       if(a.answer==='NA'){
         md+=`- **回答**：NA（略過）\n- **原因**：${a.rationale||'流程未走到此題'}`;
         if(q.cond)md+=`（條件：${q.cond} 未成立）`;
@@ -1140,7 +1155,6 @@ function buildMarkdown(s,lang){
       }
     });
   });
-  if(s.usage)md+=`---\n_Token 用量：輸入 ${s.usage.input||0} · 快取寫入 ${s.usage.cache_write||0} · 快取讀取 ${s.usage.cache_read||0} · 輸出 ${s.usage.output||0}_\n`;
   return md;
 }
 // strip Markdown markers for a clean, immediately-readable plain-text version
@@ -1176,7 +1190,8 @@ function downloadFile(content,mime,ext){
    dlLang: 'en' (英文原文, default — current behaviour) or 'bi' (中英雙語).
    translations: cached { [qid]: { quote_zh, rationale_zh } }; built once via ONE
    translateAnswers() call, reused on re-download, cleared in clearAll(). */
-let dlLang='en',translations=null,translating=false;
+let dlLang='en',translations=null,translating=false,translationUsage=null;
+const TRANSLATE_MODEL='claude-sonnet-4-6';   // translation runs on Sonnet; its tokens are added to the cost
 document.querySelectorAll('input[name="dlLangChoice"]').forEach(r=>{
   r.addEventListener('change',()=>{if(r.checked)dlLang=r.value;});
 });
@@ -1203,13 +1218,15 @@ async function ensureTranslations(){
     .filter(([,a])=>a.answer!=='NA')
     .map(([id,a])=>({id,quote:a.quote||'',rationale:a.rationale||''}));
   setDlBusy(true);
-  showDlStatus('<span class="spinner"></span>翻譯中…（一次性翻譯全部題目，約需數秒）',false);
+  showDlStatus('<span class="spinner"></span>翻譯中…（一次性翻譯全部題目，約需 2–3 分鐘，請稍候，不要關閉視窗）',false);
   try{
-    translations=await translateAnswers({apiKey,items});
+    const r=await translateAnswers({apiKey,items,model:TRANSLATE_MODEL});
+    translations=r.translations;translationUsage=r.usage;
+    if(curState)renderUsage(curState.usage||{},curState.model);   // fold translation cost into the displayed total
     clearDlStatus();
     return true;
   }catch(e){
-    translations=null;
+    translations=null;translationUsage=null;
     showDlStatus('翻譯失敗：'+(e&&e.message?e.message:String(e)),true);
     return false;
   }finally{
@@ -1288,7 +1305,7 @@ function clearAll(){
   render._sig=null;loggedDone={};loggedStart={};trialMeta={};
   // reset the bilingual-download state: drop the cached translation and the busy flag,
   // reset the language chooser back to 英文（原文）, and clear any status message
-  translations=null;translating=false;dlLang='en';
+  translations=null;translationUsage=null;translating=false;dlLang='en';
   {const r=document.querySelector('input[name="dlLangChoice"][value="en"]');if(r)r.checked=true;}
   setDlBusy(false);clearDlStatus();
   document.getElementById('dlMenu').classList.remove('open');
