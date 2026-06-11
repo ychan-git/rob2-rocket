@@ -36,7 +36,8 @@
   button.ghost{background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:none}
   button:disabled{opacity:.45;cursor:default}
 
-  .layout{display:grid;grid-template-columns:290px 1fr 300px;gap:0;flex:1;min-height:0}
+  /* right "Domain 判斷" column slimmed 300px → 210px; the freed width goes to the center 1fr panel */
+  .layout{display:grid;grid-template-columns:290px 1fr 210px;gap:0;flex:1;min-height:0}
   .col{overflow-y:auto;padding:18px}
   .sidebar{border-right:1px solid var(--border);background:var(--panel)}
   .rail{border-left:1px solid var(--border);background:var(--panel)}
@@ -81,6 +82,12 @@
   .privacypanel p{margin:0;padding:8px 11px;color:var(--muted)}
   .privacypanel p+p{border-top:1px solid var(--border)}
   .privacypanel a{color:var(--accent);font-weight:600}
+  /* compact one-line summary shown after the key is confirmed */
+  .keysummary{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:13px;font-weight:600;color:var(--low);padding:2px 0 2px}
+  .keysummary .ks-sep{color:var(--faint);font-weight:400}
+  .keysummary .ks-link{background:none;border:none;box-shadow:none;color:var(--accent);font-weight:600;font-size:13px;padding:0 2px;cursor:pointer}
+  .keysummary .ks-link:hover{text-decoration:underline}
+  #keyConfirm{padding:9px 14px;flex:none}
   .sitefoot{flex:none;padding:7px 16px;border-top:1px solid var(--border);background:var(--panel);
     color:var(--faint);font-size:11.5px;display:flex;align-items:center;gap:10px}
   .sitefoot a{color:var(--muted);text-decoration:none}
@@ -221,6 +228,12 @@
   .tl-legend{font-size:10.5px;color:var(--faint);margin-bottom:16px;line-height:1.6}
   .note{font-size:12px;color:var(--faint);margin-top:12px;line-height:1.6}
   .usage{font-size:12px;color:var(--muted);margin-top:14px;background:var(--panel2);border-radius:8px;padding:9px 11px;line-height:1.7}
+  /* cost-only line in the slim rail; the "?" toggles the detailed usage box below it */
+  .costline{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;
+    font-size:13px;font-weight:700;color:var(--text);background:var(--panel2);border-radius:8px;padding:9px 11px}
+  .costline .costq{flex:none;width:22px;height:22px;padding:0;border-radius:50%;font-size:13px;font-weight:800;
+    background:var(--panel);color:var(--accent);border:1px solid var(--accent-dim);box-shadow:none}
+  .costline .costq.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -244,15 +257,27 @@
   <div class="col" id="center">
     <div class="keycard" id="keyCard">
       <h2>Anthropic API key</h2>
-      <label style="display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600">輸入你的 key（sk-ant-…）</label>
-      <div class="keyrow">
-        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
-        <button class="ghost" id="keyShow" type="button" title="顯示／隱藏">👁</button>
-        <button class="ghost" id="keyClear" type="button">清除</button>
+      <!-- compact summary shown when the key is confirmed/collapsed -->
+      <div class="keysummary" id="keySummary" style="display:none">
+        <span class="ks-msg">✅ API key 已設定（只存在本瀏覽器）</span>
+        <span class="ks-sep">｜</span>
+        <button class="ks-link" id="keyChange" type="button">變更</button>
+        <span class="ks-sep">｜</span>
+        <button class="ks-link" id="keyClearCompact" type="button">清除</button>
       </div>
-      <label class="rememberrow"><input type="checkbox" id="rememberKey"><span>在這台裝置記住我的 key（寫入此瀏覽器；公用電腦請勿勾選）</span></label>
-      <div class="keystatus missing" id="keyStatus">尚未設定 key — 掃描與開始評讀會被鎖住。</div>
-      <p class="keytip">💡 建議到 Anthropic Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Anthropic Console</a></p>
+      <!-- editable bits: wrapped so they can be hidden together when collapsed -->
+      <div class="keyedit" id="keyEdit">
+        <label style="display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600">輸入你的 key（sk-ant-…）</label>
+        <div class="keyrow">
+          <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+          <button class="ghost" id="keyShow" type="button" title="顯示／隱藏">👁</button>
+          <button id="keyConfirm" type="button">確定</button>
+          <button class="ghost" id="keyClear" type="button">清除</button>
+        </div>
+        <label class="rememberrow"><input type="checkbox" id="rememberKey"><span>在這台裝置記住我的 key（寫入此瀏覽器；公用電腦請勿勾選）</span></label>
+        <div class="keystatus missing" id="keyStatus">尚未設定 key — 掃描與開始評讀會被鎖住。</div>
+        <p class="keytip">💡 建議到 Anthropic Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Anthropic Console</a></p>
+      </div>
       <details class="privacypanel" id="privacyPanel">
         <summary>🔒 隱私與安全說明</summary>
         <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會送到 Anthropic（api.anthropic.com），從不送到我們或任何第三方。</p>
@@ -342,12 +367,19 @@
 
   <div class="col rail">
     <h3>Domain 判斷</h3>
-    <div id="judges"></div>
+    <!-- compact traffic lights: D1–D5 + 總, each with +/?/− glyph (colour-weak safe) -->
+    <div id="railTraffic"></div>
+    <div class="tl-legend" id="railLegend">＋ 低風險　? 部分疑慮　− 高風險</div>
     <div class="overall-box">
       <div class="lbl">Overall Risk of Bias</div>
       <div class="big" id="overallVal">—</div>
     </div>
-    <div class="note">Domain 與 overall 判斷由程式依官方演算法計算，非 AI 自由判斷。AI 僅負責單題回答（答案＋原文引述＋理由）。</div>
+    <div class="note">Domain 與 overall 判斷由程式依官方演算法計算，非 AI 自由判斷。</div>
+    <!-- cost-only line + a "?" toggle that reveals the detailed token breakdown -->
+    <div class="costline" id="costLine" style="display:none">
+      <span id="costVal">—</span>
+      <button class="costq" id="costToggle" type="button" title="如何計算？">?</button>
+    </div>
     <div class="usage" id="usageBox" style="display:none"></div>
   </div>
 </div>
@@ -581,11 +613,14 @@ function buildSidebar(){
   });
 }
 function buildJudges(){
-  const el=document.getElementById('judges');el.innerHTML='';
+  // The slim rail no longer renders the verbose per-domain pill list; per-domain
+  // status now lives in the compact traffic lights (#railTraffic). Guard in case
+  // the #judges container is absent.
+  const el=document.getElementById('judges');if(!el)return;el.innerHTML='';
   DOMAINS_ACTIVE.forEach(d=>el.insertAdjacentHTML('beforeend',
     `<div class="judge"><span class="jn">D${d.id} ${d.name}</span><span class="pill pending" id="jp-${d.id}">待計算</span></div>`));
 }
-function rebuildAll(){buildSidebar();buildJudges();buildTabs();renderTraffic((curState&&curState.domains)||{},curState&&curState.overall);}
+function rebuildAll(){buildSidebar();buildJudges();buildTabs();renderTraffic((curState&&curState.domains)||{},curState&&curState.overall,'railTraffic');}
 
 // guard: if the mermaid CDN fails to load, don't let it break the rest of the app
 const MERMAID_OK=(typeof mermaid!=='undefined');
@@ -644,6 +679,17 @@ let sessionKey='';                       // in-memory key for this session (sour
 function getKey(){return (sessionKey||'').trim();}
 const apiKeyInput=document.getElementById('apiKey');
 const rememberCb=document.getElementById('rememberKey');
+// Collapse the key card to a compact one-line summary. Purely visual — never
+// touches sessionKey, rememberCb.checked, or localStorage.
+function collapseKeyCard(){
+  if(!getKey())return;                 // only collapse when a key is actually set
+  document.getElementById('keyEdit').style.display='none';
+  document.getElementById('keySummary').style.display='flex';
+}
+function expandKeyCard(){
+  document.getElementById('keySummary').style.display='none';
+  document.getElementById('keyEdit').style.display='block';
+}
 function refreshKeyState(){
   const k=getKey();
   const st=document.getElementById('keyStatus');
@@ -677,19 +723,32 @@ rememberCb.addEventListener('change',()=>{
 document.getElementById('keyShow').onclick=()=>{
   apiKeyInput.type=apiKeyInput.type==='password'?'text':'password';
 };
-document.getElementById('keyClear').onclick=()=>{
+function clearKey(){
   sessionKey='';
   localStorage.removeItem(KEY_LS);
   apiKeyInput.value='';apiKeyInput.type='password';
   rememberCb.checked=false;
+  expandKeyCard();          // back to the editable (empty) form
   refreshKeyState();
+}
+document.getElementById('keyClear').onclick=clearKey;
+document.getElementById('keyClearCompact').onclick=clearKey;
+// "確定": collapse to the compact summary if a non-empty key is present.
+document.getElementById('keyConfirm').onclick=()=>{
+  sessionKey=apiKeyInput.value.trim();   // make sure in-memory key matches the field
+  refreshKeyState();
+  if(getKey())collapseKeyCard();
 };
+// "變更": re-expand the full editable card (key/remember/localStorage unchanged).
+document.getElementById('keyChange').onclick=expandKeyCard;
 // On load: if a key was persisted, prefill input, adopt it in memory, and check the box.
 (function initKey(){
   const stored=(localStorage.getItem(KEY_LS)||'').trim();
   if(stored){sessionKey=stored;apiKeyInput.value=stored;rememberCb.checked=true;}
   // wire the repo links (footer + privacy panel) to the single REPO_URL constant
   ['footRepoLink','privacyRepoLink'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
+  // start collapsed when a key is already present (remembered + rehydrated); else expanded
+  if(getKey())collapseKeyCard();
 })();
 
 /* ---------- PDF → base64 (strip the data: prefix) ---------- */
@@ -957,7 +1016,7 @@ function render(s){
     p.className='pill '+pillClass(v);p.textContent=v;
   });
   if(s.overall){const ov=document.getElementById('overallVal');ov.textContent=s.overall;ov.className='big pill '+pillClass(s.overall);}
-  renderTraffic(s.domains||{},s.overall);
+  renderTraffic(s.domains||{},s.overall,'railTraffic');
   document.getElementById('doneActions').style.display=(s.status==='done'||s.status==='summarizing')?'flex':'none';
   const dt=document.getElementById('doneTraffic');
   if(s.status==='done'||s.status==='summarizing'){renderTraffic(s.domains||{},s.overall,'doneTraffic');}else{dt.innerHTML='';}
@@ -968,8 +1027,13 @@ function render(s){
   }
 }
 function renderUsage(u,model){
-  const box=document.getElementById('usageBox');box.style.display='block';
   const usd=costUSD(u,model);const ntd=usd*TWD;
+  // slim rail: show ONLY the total price up front; the detailed token breakdown
+  // (the #usageBox) stays hidden behind the "?" toggle.
+  const cl=document.getElementById('costLine');
+  document.getElementById('costVal').innerHTML=`估計成本 <b>NT$${ntd.toFixed(2)}</b>`;
+  cl.style.display='flex';
+  const box=document.getElementById('usageBox');   // detailed breakdown (visibility owned by the "?" toggle)
   box.innerHTML=
     `<b>Token 用量（本次評讀）</b><br>`+
     `輸入：${(u.input||0).toLocaleString()}　輸出：${(u.output||0).toLocaleString()}<br>`+
@@ -977,6 +1041,13 @@ function renderUsage(u,model){
     `<b>估計成本</b>：US$${usd.toFixed(4)} ≈ <b>NT$${ntd.toFixed(2)}</b><br>`+
     `<span style="color:var(--faint)">模型 ${prettyModel(model)}　匯率固定 1 USD ≈ ${TWD} TWD　（不含 outcome 掃描）</span>`;
 }
+// "?" toggle: reveal / hide how the cost is computed (per-token usage breakdown)
+document.getElementById('costToggle').onclick=()=>{
+  const box=document.getElementById('usageBox');const btn=document.getElementById('costToggle');
+  const show=box.style.display==='none';
+  box.style.display=show?'block':'none';
+  btn.classList.toggle('on',show);
+};
 
 /* ---------- Markdown export ---------- */
 function buildMarkdown(s){
@@ -1106,6 +1177,8 @@ function clearAll(){
   document.getElementById('nowElab').style.display='';
   ['flowWrap','nowCard','histHead','summaryCard','doneActions'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('usageBox').style.display='none';
+  document.getElementById('costLine').style.display='none';
+  document.getElementById('costToggle').classList.remove('on');
   document.getElementById('scanResult').style.display='none';
   document.getElementById('docWarn').style.display='none';
   document.getElementById('outcomeList').innerHTML='';

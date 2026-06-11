@@ -187,10 +187,10 @@ export async function scanOutcomes({ apiKey, pdfBase64, model = "claude-sonnet-4
     );
   }
   // Sort primary outcomes first, then by name (mirrors Python's
-  // key=(not primary, name): False(0) sorts before True(1)).
+  // key=(not primary, name): primary -> 0 sorts before non-primary -> 1).
   outcomes.sort((x, y) => {
-    const px = x.primary ? 1 : 0;
-    const py = y.primary ? 1 : 0;
+    const px = x.primary ? 0 : 1;
+    const py = y.primary ? 0 : 1;
     if (px !== py) return px - py;
     const nx = x.name || "";
     const ny = y.name || "";
