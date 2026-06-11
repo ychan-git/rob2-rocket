@@ -94,6 +94,20 @@
   #privacyPopover{display:none;margin-top:8px}
   #privacyPopover.open{display:block}
   #keyConfirm{padding:9px 14px;flex:none}
+  /* provider segmented control + model selector */
+  .provrow{display:flex;gap:7px;margin:2px 0 12px}
+  .provseg{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 10px;
+    border:1px solid var(--border);border-radius:9px;background:var(--bg);cursor:pointer;font-size:13px;
+    font-weight:600;color:var(--muted);user-select:none}
+  .provseg input{margin:0;flex:none}
+  /* selected provider: not colour-only — bold accent text + ring + a leading ✓ glyph */
+  .provseg.sel{border-color:var(--accent);background:#f2f7ff;color:#1d4ed8;box-shadow:0 0 0 1px var(--accent-dim) inset}
+  .provseg .provmark{font-weight:800;color:var(--accent)}
+  .modelrow{margin:0 0 10px}
+  .modelrow label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600}
+  .modelrow select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg)}
+  .modelpick{font-size:12px;color:var(--faint);margin-top:5px}
+  .modelpick b{color:var(--muted);font-weight:600}
   .sitefoot{flex:none;padding:7px 16px;border-top:1px solid var(--border);background:var(--panel);
     color:var(--faint);font-size:11.5px;display:flex;align-items:center;gap:10px}
   .sitefoot a{color:var(--muted);text-decoration:none}
@@ -281,39 +295,47 @@
       </div>
       <details class="privacypanel" id="privacyPopover">
         <summary>🔒 隱私與安全說明</summary>
-        <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會送到 Anthropic（api.anthropic.com），從不送到我們或任何第三方。</p>
-        <p>原始碼公開：<a id="privacyRepoLink2" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往 Anthropic。</p>
-        <p>本頁會連線的網域：api.anthropic.com（送出評讀請求）、esm.sh（載入 Anthropic SDK）、mermaid 的 CDN（畫流程圖）。</p>
+        <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會直接送到你選擇的 AI 供應商官方 API（Claude → api.anthropic.com；Gemini → generativelanguage.googleapis.com），從不送到我們或任何第三方。</p>
+        <p>原始碼公開：<a id="privacyRepoLink2" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往你選擇的供應商。</p>
+        <p>本頁會連線的網域：你所選供應商的 API（api.anthropic.com 或 generativelanguage.googleapis.com）、esm.sh（載入該供應商的 SDK）、mermaid 的 CDN（畫流程圖）。</p>
       </details>
     </div>
 
     <!-- full editor: shown when NO key is set, or when "變更" is clicked -->
     <div class="keycard" id="keyCard">
-      <h2>Anthropic API key</h2>
+      <h2 id="keyCardTitle">Claude (Anthropic) API key</h2>
+      <!-- provider + model pickers -->
+      <label style="display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600">選擇 LLM 供應商</label>
+      <div class="provrow" id="provRow"></div>
+      <div class="modelrow">
+        <label for="modelSelect">選擇模型</label>
+        <select id="modelSelect"></select>
+        <div class="modelpick" id="modelPick"></div>
+      </div>
       <!-- editable bits -->
       <div class="keyedit" id="keyEdit">
-        <label style="display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600">輸入你的 key（sk-ant-…）</label>
+        <label id="keyInputLabel" style="display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600">輸入你的 key（sk-ant-…）</label>
         <div class="keyrow">
           <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
           <button class="ghost" id="keyShow" type="button" title="顯示／隱藏">👁</button>
           <button id="keyConfirm" type="button">確定</button>
           <button class="ghost" id="keyClear" type="button">清除</button>
         </div>
-        <label class="rememberrow"><input type="checkbox" id="rememberKey"><span>在這台裝置記住我的 key（寫入此瀏覽器；公用電腦請勿勾選）</span></label>
+        <label class="rememberrow"><input type="checkbox" id="rememberKey"><span>在這台裝置記住目前供應商的 key（寫入此瀏覽器；公用電腦請勿勾選）</span></label>
         <div class="keystatus missing" id="keyStatus">尚未設定 key — 掃描與開始評讀會被鎖住。</div>
-        <p class="keytip">💡 建議到 Anthropic Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Anthropic Console</a></p>
+        <p class="keytip">💡 建議到供應商 Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a id="keyConsoleLink" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Console</a></p>
         <details class="privacypanel" id="privacyPanel">
           <summary>🔒 隱私與安全說明</summary>
-          <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會送到 Anthropic（api.anthropic.com），從不送到我們或任何第三方。</p>
-          <p>原始碼公開：<a id="privacyRepoLink" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往 Anthropic。</p>
-          <p>本頁會連線的網域：api.anthropic.com（送出評讀請求）、esm.sh（載入 Anthropic SDK）、mermaid 的 CDN（畫流程圖）。</p>
+          <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會直接送到你選擇的 AI 供應商官方 API（Claude → api.anthropic.com；Gemini → generativelanguage.googleapis.com），從不送到我們或任何第三方。</p>
+          <p>原始碼公開：<a id="privacyRepoLink" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往你選擇的供應商。</p>
+          <p>本頁會連線的網域：你所選供應商的 API（api.anthropic.com 或 generativelanguage.googleapis.com）、esm.sh（載入該供應商的 SDK）、mermaid 的 CDN（畫流程圖）。</p>
         </details>
       </div>
     </div>
 
     <div class="upload" id="uploadPanel">
       <h2>開始一次評讀</h2>
-      <p>RoB 2 評的是「單一試驗的單一結果」。請先指定要評讀哪個結局，再開始。你的 API key 留在本機瀏覽器，只會直接送往 Anthropic。</p>
+      <p>RoB 2 評的是「單一試驗的單一結果」。請先指定要評讀哪個結局，再開始。你的 API key 留在本機瀏覽器，只會直接送往你選擇的 AI 供應商。</p>
 
       <label>RCT PDF</label>
       <input type="file" id="fPdf" accept="application/pdf">
@@ -424,6 +446,20 @@
 import { RoB2Engine, scanOutcomes, translateAnswers } from "./engine.js";
 
 const REPO_URL = "https://github.com/ychan-git/rob2-rocket";
+
+/* ---------- LLM provider / model catalog ----------
+   The `rec:true` model is the DEFAULT (cheapest-but-capable) for that provider and is
+   also used for the (cheaper) translation pass. The `stronger:true` model is labelled
+   「（更強，可能花費更高）」in the UI. Leave room for ChatGPT later — don't add it now. */
+const PROVIDERS={
+  anthropic:{ label:"Claude (Anthropic)", keyHint:"sk-ant-…", keyUrl:"https://console.anthropic.com/settings/keys",
+    models:[ {id:"claude-sonnet-4-6", rec:true}, {id:"claude-opus-4-8", stronger:true} ] },
+  gemini:   { label:"Gemini (Google)", keyHint:"AIza…", keyUrl:"https://aistudio.google.com/apikey",
+    models:[ {id:"gemini-2.5-flash", rec:true}, {id:"gemini-2.5-pro", stronger:true} ] },
+};
+function recModel(prov){const m=(PROVIDERS[prov].models.find(x=>x.rec)||PROVIDERS[prov].models[0]);return m.id;}
+let currentProvider='anthropic';                 // default provider
+let currentModel=recModel(currentProvider);      // default model = the provider's rec model
 
 /* ---------- question metadata (text + conditions + badges) ---------- */
 const DOMAINS=[
@@ -706,20 +742,86 @@ document.getElementById('gToggle').onclick=()=>{
   tg.textContent=(gf.classList.contains('open')?'▾ 收合指引':'▸ 查看本題完整指引');
 };
 
-/* ---------- API key ----------
-   Session-only by default: the key lives in an in-memory variable and is NOT
-   written to disk unless the user opts in via the "remember" checkbox. Everything
-   downstream reads getKey() → the in-memory variable, so the tool works even when
-   nothing is persisted. */
-const KEY_LS='rob2_api_key';
-let sessionKey='';                       // in-memory key for this session (source of truth)
-function getKey(){return (sessionKey||'').trim();}
+/* ---------- API key (per-provider) ----------
+   Session-only by default: keys live in an in-memory map (one slot per provider) and
+   are NOT written to disk unless the user opts in via the "remember" checkbox. Everything
+   downstream reads getKey() → the CURRENT provider's in-memory key, so the tool works even
+   when nothing is persisted. Each provider persists to its own localStorage entry. */
+const KEY_LS_PREFIX='rob2_key_';                 // e.g. rob2_key_anthropic / rob2_key_gemini
+const keyLS=prov=>KEY_LS_PREFIX+prov;
+let sessionKeys={anthropic:"",gemini:""};        // in-memory key per provider (source of truth)
+function getKey(){return (sessionKeys[currentProvider]||'').trim();}
 const apiKeyInput=document.getElementById('apiKey');
 const rememberCb=document.getElementById('rememberKey');
+const modelSelect=document.getElementById('modelSelect');
+
+/* friendly short model label e.g. "Sonnet 4.6" (drops the leading brand word) */
+function shortModel(id){const p=prettyModel(id);return p.replace(/^Claude\s+/,'').replace(/^Gemini\s+/,'');}
+
+/* (re)build the provider segmented control + the model <select> for the current provider */
+function buildProviderUI(){
+  const pr=document.getElementById('provRow');pr.innerHTML='';
+  Object.entries(PROVIDERS).forEach(([id,p])=>{
+    const sel=id===currentProvider;
+    const lab=document.createElement('label');
+    lab.className='provseg'+(sel?' sel':'');
+    lab.innerHTML=`<input type="radio" name="llmProvider" value="${id}" ${sel?'checked':''}>`+
+      `<span>${sel?'<span class="provmark">✓ </span>':''}${p.label}</span>`;
+    lab.querySelector('input').onchange=()=>switchProvider(id);
+    pr.appendChild(lab);
+  });
+  buildModelSelect();
+}
+function buildModelSelect(){
+  const p=PROVIDERS[currentProvider];
+  modelSelect.innerHTML='';
+  p.models.forEach(m=>{
+    const o=document.createElement('option');o.value=m.id;
+    o.textContent=prettyModel(m.id)+(m.rec?'（推薦）':'')+(m.stronger?'（更強，可能花費更高）':'');
+    if(m.id===currentModel)o.selected=true;
+    modelSelect.appendChild(o);
+  });
+  updateModelPick();
+}
+function updateModelPick(){
+  document.getElementById('modelPick').innerHTML=
+    `目前使用：<b>${PROVIDERS[currentProvider].label} · ${prettyModel(currentModel)}</b>`;
+}
+modelSelect.addEventListener('change',()=>{currentModel=modelSelect.value;updateModelPick();});
+
+/* update the key-input placeholder, console link, card title for the current provider */
+function applyProviderChrome(){
+  const p=PROVIDERS[currentProvider];
+  apiKeyInput.placeholder=p.keyHint;
+  document.getElementById('keyInputLabel').textContent='輸入你的 key（'+p.keyHint+'）';
+  document.getElementById('keyCardTitle').textContent=p.label+' API key';
+  document.getElementById('keyConsoleLink').href=p.keyUrl;
+}
+
+/* Switch provider: persist the CURRENT field value first, then swap to the new provider's
+   key + model list, re-evaluate the gate. The remember checkbox reflects the new provider's
+   persistence state. */
+function switchProvider(prov){
+  if(!PROVIDERS[prov]||prov===currentProvider){buildProviderUI();return;}
+  // commit whatever is in the field to the (old) provider's in-memory slot
+  sessionKeys[currentProvider]=apiKeyInput.value.trim();
+  currentProvider=prov;
+  currentModel=recModel(prov);                 // default-select the new provider's rec model
+  // show the new provider's key + persistence state
+  apiKeyInput.value=sessionKeys[prov]||'';
+  apiKeyInput.type='password';
+  rememberCb.checked=!!(localStorage.getItem(keyLS(prov))||'').trim();
+  applyProviderChrome();
+  buildProviderUI();
+  refreshKeyState();
+}
 // Collapse the key card to a compact one-line summary. Purely visual — never
-// touches sessionKey, rememberCb.checked, or localStorage.
+// touches sessionKeys, rememberCb.checked, or localStorage.
 function collapseKeyCard(){
   if(!getKey())return;                 // only collapse when a key is actually set
+  // update the one-line summary to include provider + friendly model name
+  const msg=document.querySelector('#keySummary .ks-msg');
+  if(msg)msg.textContent=`🔑 ${PROVIDERS[currentProvider].label.replace(/\s*\(.*\)$/,'')} · ${shortModel(currentModel)} 已設定（只存在本瀏覽器）`;
   // collapsed: hide the whole full-editor card, show just the slim one-line summary
   document.getElementById('keyCard').style.display='none';
   document.getElementById('keySummaryWrap').style.display='block';
@@ -735,10 +837,11 @@ function refreshKeyState(){
   const k=getKey();
   const st=document.getElementById('keyStatus');
   if(k){
+    const dest=currentProvider==='gemini'?'Google（Gemini）':'Anthropic';
     st.className='keystatus ok';
     st.textContent=rememberCb.checked
-      ? '✓ key 已設定，並已記在這台瀏覽器（只會直接送往 Anthropic）。'
-      : '✓ key 已設定（僅此分頁，未寫入瀏覽器；只會直接送往 Anthropic）。';
+      ? `✓ ${PROVIDERS[currentProvider].label} key 已設定，並已記在這台瀏覽器（只會直接送往 ${dest}）。`
+      : `✓ ${PROVIDERS[currentProvider].label} key 已設定（僅此分頁，未寫入瀏覽器；只會直接送往 ${dest}）。`;
   }else{
     st.className='keystatus missing';
     st.textContent='尚未設定 key — 掃描與開始評讀會被鎖住。';
@@ -748,25 +851,29 @@ function refreshKeyState(){
   document.getElementById('scanBtn').disabled=lock;
   document.getElementById('startBtn').disabled=lock||(curState.status==='running'||curState.status==='summarizing');
 }
-// key input → always update in-memory key + gating; mirror to localStorage only if remembering
+// key input → always update the CURRENT provider's in-memory key + gating; mirror to its
+// localStorage entry only if remembering
 apiKeyInput.addEventListener('input',()=>{
-  sessionKey=apiKeyInput.value.trim();
-  if(rememberCb.checked&&sessionKey)localStorage.setItem(KEY_LS,sessionKey);
-  else localStorage.removeItem(KEY_LS);
+  const v=apiKeyInput.value.trim();
+  sessionKeys[currentProvider]=v;
+  if(rememberCb.checked&&v)localStorage.setItem(keyLS(currentProvider),v);
+  else localStorage.removeItem(keyLS(currentProvider));
   refreshKeyState();
 });
-// checkbox toggle: checked → persist current key; unchecked → forget on disk (keep in memory)
+// checkbox toggle: checked → persist current provider's key; unchecked → forget on disk (keep in memory)
 rememberCb.addEventListener('change',()=>{
-  if(rememberCb.checked&&sessionKey)localStorage.setItem(KEY_LS,sessionKey);
-  else localStorage.removeItem(KEY_LS);
+  const v=getKey();
+  if(rememberCb.checked&&v)localStorage.setItem(keyLS(currentProvider),v);
+  else localStorage.removeItem(keyLS(currentProvider));
   refreshKeyState();
 });
 document.getElementById('keyShow').onclick=()=>{
   apiKeyInput.type=apiKeyInput.type==='password'?'text':'password';
 };
 function clearKey(){
-  sessionKey='';
-  localStorage.removeItem(KEY_LS);
+  // clears ONLY the current provider's key (in-memory + its localStorage entry)
+  sessionKeys[currentProvider]='';
+  localStorage.removeItem(keyLS(currentProvider));
   apiKeyInput.value='';apiKeyInput.type='password';
   rememberCb.checked=false;
   expandKeyCard();          // back to the editable (empty) form
@@ -776,7 +883,7 @@ document.getElementById('keyClear').onclick=clearKey;
 document.getElementById('keyClearCompact').onclick=clearKey;
 // "確定": collapse to the compact summary if a non-empty key is present.
 document.getElementById('keyConfirm').onclick=()=>{
-  sessionKey=apiKeyInput.value.trim();   // make sure in-memory key matches the field
+  sessionKeys[currentProvider]=apiKeyInput.value.trim();   // make sure in-memory key matches the field
   refreshKeyState();
   if(getKey())collapseKeyCard();
 };
@@ -789,10 +896,14 @@ document.getElementById('privacyToggle').onclick=()=>{
   if(open){pop.setAttribute('open','');pop.classList.add('open');}
   else{pop.removeAttribute('open');pop.classList.remove('open');}
 };
-// On load: if a key was persisted, prefill input, adopt it in memory, and check the box.
+// On load: rehydrate BOTH providers' keys from their localStorage entries into sessionKeys,
+// build the provider/model UI, prefill the current provider's field, and check the box if it
+// was persisted.
 (function initKey(){
-  const stored=(localStorage.getItem(KEY_LS)||'').trim();
-  if(stored){sessionKey=stored;apiKeyInput.value=stored;rememberCb.checked=true;}
+  Object.keys(PROVIDERS).forEach(prov=>{sessionKeys[prov]=(localStorage.getItem(keyLS(prov))||'').trim();});
+  buildProviderUI();
+  applyProviderChrome();
+  if(sessionKeys[currentProvider]){apiKeyInput.value=sessionKeys[currentProvider];rememberCb.checked=true;}
   // wire the repo links (footer + privacy panel) to the single REPO_URL constant
   ['footRepoLink','privacyRepoLink','privacyRepoLink2'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
   // start collapsed when a key is already present (remembered + rehydrated); else expanded
@@ -824,7 +935,7 @@ document.getElementById('scanBtn').onclick=async()=>{
   document.getElementById('scanHint').textContent='掃描中…（呼叫一次 AI 讀取全文）';
   try{
     const pdfBase64=await pdfToBase64(f);
-    const j=await scanOutcomes({apiKey,pdfBase64});
+    const j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:currentModel});
     const list=document.getElementById('outcomeList');list.innerHTML='';
     const outs=j.outcomes||[];
     const addRow=o=>{
@@ -892,6 +1003,8 @@ document.getElementById('startBtn').onclick=async()=>{
       pdfBase64,
       resultOutcome:outcome,
       effect,
+      provider:currentProvider,
+      model:currentModel,
       onUpdate:(s)=>render(s),
       signal:abortCtl.signal,
     });
@@ -1083,7 +1196,7 @@ function render(s){
 }
 function renderUsage(u,model){
   const usd=costUSD(u,model);
-  const tusd=translationUsage?costUSD(translationUsage,TRANSLATE_MODEL):0;   // translation tokens cost money too
+  const tusd=translationUsage?costUSD(translationUsage,translateModel()):0;   // translation tokens cost money too
   const totUsd=usd+tusd;const ntd=totUsd*TWD;
   // slim rail: show ONLY the total price up front; the detailed token breakdown
   // (the #usageBox) stays hidden behind the "?" toggle.
@@ -1098,7 +1211,7 @@ function renderUsage(u,model){
     `快取寫入：${(u.cache_write||0).toLocaleString()}　快取讀取：${(u.cache_read||0).toLocaleString()}（0.1×成本）<br>`+
     `評讀成本：US$${usd.toFixed(4)} ≈ NT$${(usd*TWD).toFixed(2)}<br>`+
     (translationUsage
-      ? `<b>翻譯</b>（${prettyModel(TRANSLATE_MODEL)}）：輸入 ${(translationUsage.input||0).toLocaleString()}　輸出 ${(translationUsage.output||0).toLocaleString()}　≈ NT$${(tusd*TWD).toFixed(2)}<br>`
+      ? `<b>翻譯</b>（${prettyModel(translateModel())}）：輸入 ${(translationUsage.input||0).toLocaleString()}　輸出 ${(translationUsage.output||0).toLocaleString()}　≈ NT$${(tusd*TWD).toFixed(2)}<br>`
       : '')+
     `<b>合計</b>：US$${totUsd.toFixed(4)} ≈ <b>NT$${ntd.toFixed(2)}</b><br>`+
     `<span style="color:var(--faint)">模型 ${prettyModel(model)}　匯率固定 1 USD ≈ ${TWD} TWD　（不含 outcome 掃描）</span>`;
@@ -1195,7 +1308,10 @@ function downloadFile(content,mime,ext){
    translations: cached { [qid]: { quote_zh, rationale_zh } }; built once via ONE
    translateAnswers() call, reused on re-download, cleared in clearAll(). */
 let dlLang='en',translations=null,translating=false,translationUsage=null;
-const TRANSLATE_MODEL='claude-sonnet-4-6';   // translation runs on Sonnet; its tokens are added to the cost
+// Translation must run through the SAME provider the user picked (a Claude-only translate
+// would fail for a Gemini user). Use that provider's rec (cheapest) model. Resolved at call
+// time so it tracks the current provider: anthropic→claude-sonnet-4-6, gemini→gemini-2.5-flash.
+function translateModel(){return recModel(currentProvider);}
 document.querySelectorAll('input[name="dlLangChoice"]').forEach(r=>{
   r.addEventListener('change',()=>{if(r.checked)dlLang=r.value;});
 });
@@ -1224,7 +1340,7 @@ async function ensureTranslations(){
   setDlBusy(true);
   showDlStatus('<span class="spinner"></span>翻譯中…（一次性翻譯全部題目，約需 2–3 分鐘，請稍候，不要關閉視窗）',false);
   try{
-    const r=await translateAnswers({apiKey,items,model:TRANSLATE_MODEL});
+    const r=await translateAnswers({apiKey,items,provider:currentProvider,model:translateModel()});
     translations=r.translations;translationUsage=r.usage;
     if(curState)renderUsage(curState.usage||{},curState.model);   // fold translation cost into the displayed total
     clearDlStatus();
