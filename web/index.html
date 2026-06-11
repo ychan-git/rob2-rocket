@@ -506,6 +506,8 @@ const PRICING={
   "claude-haiku-4-5-20251001":{in:1,out:5,cw:1.25,cr:0.10},
   "claude-opus-4-8":{in:5,out:25,cw:6.25,cr:0.50},
   "claude-opus-4-7":{in:5,out:25,cw:6.25,cr:0.50},
+  "gemini-2.5-flash":{in:0.30, out:2.50, cw:0, cr:0.075},
+  "gemini-2.5-pro":{in:1.25, out:10.00, cw:0, cr:0.3125},
 };
 let TWD=31.6;
 function costUSD(u,model){
@@ -1176,7 +1178,8 @@ function prettyModel(id){
   if(!id)return '—';
   const map={'claude-sonnet-4-6':'Claude Sonnet 4.6','claude-opus-4-8':'Claude Opus 4.8',
     'claude-haiku-4-5':'Claude Haiku 4.5','claude-haiku-4-5-20251001':'Claude Haiku 4.5',
-    'claude-fable-5':'Claude Fable 5'};
+    'claude-fable-5':'Claude Fable 5',
+    'gemini-2.5-flash':'Gemini 2.5 Flash','gemini-2.5-pro':'Gemini 2.5 Pro'};
   if(map[id])return map[id];
   const words=[],nums=[];
   id.split('-').forEach(p=>{p.match(/^\d+$/)?nums.push(p):words.push(p.charAt(0).toUpperCase()+p.slice(1));});
