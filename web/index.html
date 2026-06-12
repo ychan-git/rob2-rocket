@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RoB 2 評讀進度</title>
+<title>RoB2 Rocket</title>
+<link rel="icon" type="image/png" href="/logo.png">
+<link rel="apple-touch-icon" href="/logo.png">
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
   :root{
@@ -575,6 +577,9 @@ const PRICING={
   "claude-opus-4-7":{in:5,out:25,cw:6.25,cr:0.50},
   "gemini-3.1-pro-preview":{in:2.00, out:12.00, cw:0, cr:0.50},
   "gpt-5.4":       {in:2.50, out:15.00, cw:0, cr:1.25},
+  // 掃描專用便宜款（成本明細需要正確計價，否則 fallback 到 Sonnet 會高估）
+  "gemini-3.1-flash-lite":{in:0.25, out:1.50, cw:0, cr:0.0625},
+  "gpt-5.4-mini":  {in:0.75, out:4.50, cw:0, cr:0.375},
 };
 let TWD=31.6;
 function costUSD(u,model){
@@ -971,11 +976,12 @@ document.getElementById('scanBtn').onclick=async()=>{
     // id only costs more, never breaks the scan.
     const scanM=scanModel(currentProvider);
     let j;
-    try{ j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:scanM}); }
+    try{ j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:scanM}); scanUsedModel=scanM; }
     catch(scanErr){
       if(scanM===currentModel)throw scanErr;
-      j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:currentModel});
+      j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:currentModel}); scanUsedModel=currentModel;
     }
+    scanUsage=j.usage||null;   // 掃描用量計入總成本（明細獨立一行）
     const list=document.getElementById('outcomeList');list.innerHTML='';
     const outs=j.outcomes||[];
     const addRow=o=>{
@@ -1237,24 +1243,28 @@ function render(s){
 function renderUsage(u,model){
   const usd=costUSD(u,model);
   const tusd=translationUsage?costUSD(translationUsage,translateModel()):0;   // translation tokens cost money too
-  const totUsd=usd+tusd;const ntd=totUsd*TWD;
+  const susd=scanUsage?costUSD(scanUsage,scanUsedModel||model):0;             // outcome 掃描那次（整份 PDF 未快取）
+  const totUsd=usd+tusd+susd;const ntd=totUsd*TWD;
   // slim rail: show ONLY the total price up front; the detailed token breakdown
   // (the #usageBox) stays hidden behind the "?" toggle.
   const cl=document.getElementById('costLine');
   document.getElementById('costVal').innerHTML=`估計成本 <b>NT$${ntd.toFixed(2)}</b>`+
-    (tusd?` <span style="color:var(--faint)">（含翻譯 NT$${(tusd*TWD).toFixed(2)}）</span>`:'');
+    `<span style="color:var(--faint)">（含掃描${tusd?'＋翻譯':''}；按「?」看明細）</span>`;
   cl.style.display='flex';
   const box=document.getElementById('usageBox');   // detailed breakdown (visibility owned by the "?" toggle)
   box.innerHTML=
-    `<b>Token 用量（本次評讀）</b><br>`+
+    (scanUsage
+      ? `<b>① 結局掃描</b>（${prettyModel(scanUsedModel||model)}）：整份 PDF 讀一次（未快取）　≈ NT$${(susd*TWD).toFixed(2)}<br>`
+      : '')+
+    `<b>${scanUsage?'② ':''}評讀</b>（22 題）<br>`+
     `輸入：${(u.input||0).toLocaleString()}　輸出：${(u.output||0).toLocaleString()}<br>`+
-    `快取寫入：${(u.cache_write||0).toLocaleString()}　快取讀取：${(u.cache_read||0).toLocaleString()}（0.1×成本）<br>`+
+    `快取寫入：${(u.cache_write||0).toLocaleString()}（一次性，第一題就付，1.25×）　快取讀取：${(u.cache_read||0).toLocaleString()}（其餘題重讀，0.1×）<br>`+
     `評讀成本：US$${usd.toFixed(4)} ≈ NT$${(usd*TWD).toFixed(2)}<br>`+
     (translationUsage
-      ? `<b>翻譯</b>（${prettyModel(translateModel())}）：輸入 ${(translationUsage.input||0).toLocaleString()}　輸出 ${(translationUsage.output||0).toLocaleString()}　≈ NT$${(tusd*TWD).toFixed(2)}<br>`
+      ? `<b>${scanUsage?'③ ':''}翻譯</b>（${prettyModel(translateModel())}）：輸入 ${(translationUsage.input||0).toLocaleString()}　輸出 ${(translationUsage.output||0).toLocaleString()}　≈ NT$${(tusd*TWD).toFixed(2)}<br>`
       : '')+
     `<b>合計</b>：US$${totUsd.toFixed(4)} ≈ <b>NT$${ntd.toFixed(2)}</b><br>`+
-    `<span style="color:var(--faint)">模型 ${prettyModel(model)}　匯率固定 1 USD ≈ ${TWD} TWD　（不含 outcome 掃描）</span>`;
+    `<span style="color:var(--faint)">評讀模型 ${prettyModel(model)}　匯率固定 1 USD ≈ ${TWD} TWD</span>`;
 }
 // "?" toggle: reveal / hide how the cost is computed (per-token usage breakdown)
 document.getElementById('costToggle').onclick=()=>{
@@ -1351,6 +1361,7 @@ function downloadFile(content,mime,ext){
    translations: cached { [qid]: { quote_zh, rationale_zh } }; built once via ONE
    translateAnswers() call, reused on re-download, cleared in clearAll(). */
 let dlLang='en',translations=null,translating=false,translationUsage=null;
+let scanUsage=null,scanUsedModel=null;   // 掃描那次的用量（整份 PDF 未快取，最便宜模型）
 // Translation must run through the SAME provider the user picked (a Claude-only translate
 // would fail for a Gemini user). Use that provider's rec (cheapest) model. Resolved at call
 // time so it tracks the current provider: anthropic→claude-sonnet-4-6, gemini→gemini-2.5-flash.

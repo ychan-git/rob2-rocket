@@ -83,8 +83,8 @@ export async function scanOutcomes({
 }) {
   const adapter = await createAdapter(provider, { apiKey, model, cacheTtl });
   try {
-    const { title, outcomes, doc_type, doc_note } = await adapter.scan({ pdfBase64 });
-    return { title, outcomes, doc_type, doc_note };
+    const { title, outcomes, doc_type, doc_note, usage } = await adapter.scan({ pdfBase64 });
+    return { title, outcomes, doc_type, doc_note, usage };
   } finally {
     // Fire-and-forget cleanup (noop for Anthropic/Gemini; deletes uploaded file for OpenAI).
     Promise.resolve(adapter.cleanup?.()).catch(() => {});
