@@ -42,6 +42,8 @@
   .layout{display:grid;grid-template-columns:290px 1fr 210px;gap:0;flex:1;min-height:0}
   .col{overflow-y:auto;padding:18px}
   .sidebar{border-right:1px solid var(--border);background:var(--panel)}
+  /* 開始評讀前：左右兩欄淡化（仍看得到 22 題清單＋紅綠燈，讓使用者先看懂運作），開始後恢復全亮 */
+  .col.predim{opacity:.4;transition:opacity .35s ease}
   .rail{border-left:1px solid var(--border);background:var(--panel)}
   .sidebar h3,.rail h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:0 0 12px;font-weight:700}
 
@@ -280,7 +282,7 @@
 </header>
 
 <div class="layout">
-  <div class="col sidebar" id="sidebar"><h3>訊號問題進度</h3></div>
+  <div class="col sidebar predim" id="sidebar"><h3>訊號問題進度</h3></div>
 
   <div class="col" id="center">
     <!-- collapsed state: a single quiet line, no card chrome / heading / always-open privacy box -->
@@ -425,7 +427,7 @@
     <div id="history"></div>
   </div>
 
-  <div class="col rail">
+  <div class="col rail predim" id="rail">
     <h3>Domain 判斷</h3>
     <!-- compact traffic lights: D1–D5 only (overall lives in the OVERALL box below), each with +/?/− glyph (colour-weak safe) -->
     <div id="railTraffic"></div>
@@ -436,8 +438,8 @@
     </div>
     <div class="note">Domain 與 overall 判斷由程式依官方演算法計算，非 AI 自由判斷。</div>
     <!-- cost-only line + a "?" toggle that reveals the detailed token breakdown -->
-    <div class="costline" id="costLine" style="display:none">
-      <span id="costVal">—</span>
+    <div class="costline" id="costLine">
+      <span id="costVal">估計成本 <b>NT$0.00</b><span style="color:var(--faint)">（評讀開始後即時更新）</span></span>
       <button class="costq" id="costToggle" type="button" title="如何計算？">?</button>
     </div>
     <div class="usage" id="usageBox" style="display:none"></div>
@@ -1028,6 +1030,8 @@ document.getElementById('startBtn').onclick=async()=>{
     abortCtl=new AbortController();
     document.getElementById('uploadPanel').style.display='none';
     document.getElementById('summaryCard').style.display='none';
+    document.getElementById('sidebar').classList.remove('predim');   // 開始後左右兩欄恢復全亮
+    document.getElementById('rail').classList.remove('predim');
     ['flowWrap','nowCard','histHead'].forEach(id=>document.getElementById(id).style.display='block');
     // jump back to the top of the live progress view (after picking from a long outcome list,
     // the user may be scrolled far down — take them straight to the per-question progress)
@@ -1485,8 +1489,11 @@ function clearAll(){
   document.getElementById('nowElab').style.display='';
   ['flowWrap','nowCard','histHead','summaryCard','doneActions'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('usageBox').style.display='none';
-  document.getElementById('costLine').style.display='none';
+  document.getElementById('costLine').style.display='flex';
+  document.getElementById('costVal').innerHTML='估計成本 <b>NT$0.00</b><span style="color:var(--faint)">（評讀開始後即時更新）</span>';
   document.getElementById('costToggle').classList.remove('on');
+  document.getElementById('sidebar').classList.add('predim');   // 回到開始前：左右淡化
+  document.getElementById('rail').classList.add('predim');
   document.getElementById('scanResult').style.display='none';
   document.getElementById('docWarn').style.display='none';
   document.getElementById('outcomeList').innerHTML='';
