@@ -462,7 +462,7 @@ const PROVIDERS={
   anthropic:{ label:"Claude (Anthropic)", keyHint:"sk-ant-…", keyUrl:"https://console.anthropic.com/settings/keys",
     models:[ {id:"claude-sonnet-4-6", rec:true}, {id:"claude-opus-4-8", stronger:true} ] },
   gemini:   { label:"Gemini (Google)", keyHint:"AIza…", keyUrl:"https://aistudio.google.com/apikey",
-    models:[ {id:"gemini-3.1-pro", rec:true} ] },
+    models:[ {id:"gemini-3.1-pro-preview", rec:true} ] },
   openai:   { label:"ChatGPT (OpenAI)", keyHint:"sk-…", keyUrl:"https://platform.openai.com/api-keys",
     models:[ {id:"gpt-5.4", rec:true} ] },
 };
@@ -551,7 +551,7 @@ const PRICING={
   "claude-haiku-4-5-20251001":{in:1,out:5,cw:1.25,cr:0.10},
   "claude-opus-4-8":{in:5,out:25,cw:6.25,cr:0.50},
   "claude-opus-4-7":{in:5,out:25,cw:6.25,cr:0.50},
-  "gemini-3.1-pro":{in:2.00, out:12.00, cw:0, cr:0.50},
+  "gemini-3.1-pro-preview":{in:2.00, out:12.00, cw:0, cr:0.50},
   "gpt-5.4":       {in:2.50, out:15.00, cw:0, cr:1.25},
 };
 let TWD=31.6;
@@ -1302,7 +1302,7 @@ function prettyModel(id){
     'claude-haiku-4-5':'Claude Haiku 4.5','claude-haiku-4-5-20251001':'Claude Haiku 4.5',
     'claude-fable-5':'Claude Fable 5',
     'gemini-2.5-flash':'Gemini 2.5 Flash','gemini-2.5-pro':'Gemini 2.5 Pro',
-    'gemini-3.1-flash-lite':'Gemini 3.1 Flash-Lite','gemini-3.1-pro':'Gemini 3.1 Pro',
+    'gemini-3.1-flash-lite':'Gemini 3.1 Flash-Lite','gemini-3.1-pro':'Gemini 3.1 Pro','gemini-3.1-pro-preview':'Gemini 3.1 Pro',
     'gpt-4o-mini':'GPT-4o mini','gpt-4o':'GPT-4o',
     'gpt-5.4-mini':'GPT-5.4 mini','gpt-5.4':'GPT-5.4'};
   if(map[id])return map[id];

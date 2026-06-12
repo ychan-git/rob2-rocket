@@ -164,7 +164,7 @@ function pdfPart(b64) {
  * @param {string} [opts.cacheTtl]  accepted for parity; ignored (implicit caching)
  * @returns {{ assess, scan, translate, summarize }} adapter
  */
-export function createGeminiAdapter({ apiKey, model = "gemini-3.1-pro", cacheTtl }) {
+export function createGeminiAdapter({ apiKey, model = "gemini-3.1-pro-preview", cacheTtl }) {
   const ai = new GoogleGenAI({ apiKey });
 
   return {
