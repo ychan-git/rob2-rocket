@@ -849,6 +849,7 @@ function switchProvider(prov){
   // commit whatever is in the field to the (old) provider's in-memory slot
   sessionKeys[currentProvider]=apiKeyInput.value.trim();
   currentProvider=prov;
+  localStorage.setItem('rob2_last_provider',prov);   // 記住選擇，重整後還原
   currentModel=recModel(prov);                 // default-select the new provider's rec model
   // show the new provider's key + persistence state
   apiKeyInput.value=sessionKeys[prov]||'';
@@ -944,6 +945,11 @@ document.getElementById('privacyToggle').onclick=()=>{
 // was persisted.
 (function initKey(){
   Object.keys(PROVIDERS).forEach(prov=>{sessionKeys[prov]=(localStorage.getItem(keyLS(prov))||'').trim();});
+  // 還原上次選的供應商；沒記錄就自動跳到「有存 key 的那家」，否則維持預設
+  const last=localStorage.getItem('rob2_last_provider');
+  if(last&&PROVIDERS[last])currentProvider=last;
+  else{const withKey=Object.keys(PROVIDERS).find(p=>sessionKeys[p]);if(withKey)currentProvider=withKey;}
+  currentModel=recModel(currentProvider);
   buildProviderUI();
   applyProviderChrome();
   if(sessionKeys[currentProvider]){apiKeyInput.value=sessionKeys[currentProvider];rememberCb.checked=true;}
