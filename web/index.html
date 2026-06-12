@@ -448,16 +448,23 @@ import { RoB2Engine, scanOutcomes, translateAnswers } from "./engine.js";
 const REPO_URL = "https://github.com/ychan-git/rob2-rocket";
 
 /* ---------- LLM provider / model catalog ----------
-   The `rec:true` model is the DEFAULT (cheapest-but-capable) for that provider and is
-   also used for the (cheaper) translation pass. The `stronger:true` model is labelled
-   「（更強，可能花費更高）」in the UI. */
+   THREE tiers per provider, chosen for the RoB 2 task (whose bottleneck is faithful
+   quotation / low hallucination + strict instruction following, NOT maths/coding):
+   - `budget:true`   省錢版：cheapest small model. High hallucination risk — only for a
+                     quick "does this paper have any serious bias?" screen, NOT a real read.
+                     Carries an explicit ⚠️ warning in the UI (see updateModelPick).
+   - `rec:true`      標準版 (DEFAULT): the cheapest model that is still ACCURATE enough to
+                     trust. This is what a serious user should use; also used for translation.
+   - `stronger:true` 進階版：highest accuracy / lowest hallucination (only where one exists).
+   Model picks are benchmark-driven (2026-06); update the ids here + PRICING below as
+   models are superseded — the adapters don't hard-code ids. */
 const PROVIDERS={
   anthropic:{ label:"Claude (Anthropic)", keyHint:"sk-ant-…", keyUrl:"https://console.anthropic.com/settings/keys",
-    models:[ {id:"claude-sonnet-4-6", rec:true}, {id:"claude-opus-4-8", stronger:true} ] },
+    models:[ {id:"claude-haiku-4-5", budget:true}, {id:"claude-sonnet-4-6", rec:true}, {id:"claude-opus-4-8", stronger:true} ] },
   gemini:   { label:"Gemini (Google)", keyHint:"AIza…", keyUrl:"https://aistudio.google.com/apikey",
-    models:[ {id:"gemini-2.5-flash", rec:true}, {id:"gemini-2.5-pro", stronger:true} ] },
+    models:[ {id:"gemini-3.1-flash-lite", budget:true}, {id:"gemini-3.1-pro", rec:true} ] },
   openai:   { label:"ChatGPT (OpenAI)", keyHint:"sk-…", keyUrl:"https://platform.openai.com/api-keys",
-    models:[ {id:"gpt-4o-mini", rec:true}, {id:"gpt-4o", stronger:true} ] },
+    models:[ {id:"gpt-5.4-mini", budget:true}, {id:"gpt-5.4", rec:true} ] },
 };
 function recModel(prov){const m=(PROVIDERS[prov].models.find(x=>x.rec)||PROVIDERS[prov].models[0]);return m.id;}
 let currentProvider='anthropic';                 // default provider
@@ -544,10 +551,11 @@ const PRICING={
   "claude-haiku-4-5-20251001":{in:1,out:5,cw:1.25,cr:0.10},
   "claude-opus-4-8":{in:5,out:25,cw:6.25,cr:0.50},
   "claude-opus-4-7":{in:5,out:25,cw:6.25,cr:0.50},
-  "gemini-2.5-flash":{in:0.30, out:2.50, cw:0, cr:0.075},
-  "gemini-2.5-pro":{in:1.25, out:10.00, cw:0, cr:0.3125},
-  "gpt-4o-mini":   {in:0.15, out:0.60,  cw:0, cr:0.075},
-  "gpt-4o":        {in:2.50, out:10.00, cw:0, cr:1.25},
+  "claude-haiku-4-5":{in:1, out:5, cw:1.25, cr:0.10},
+  "gemini-3.1-flash-lite":{in:0.25, out:1.50, cw:0, cr:0.0625},
+  "gemini-3.1-pro":{in:2.00, out:12.00, cw:0, cr:0.50},
+  "gpt-5.4-mini":  {in:0.75, out:4.50,  cw:0, cr:0.375},
+  "gpt-5.4":       {in:2.50, out:15.00, cw:0, cr:1.25},
 };
 let TWD=31.6;
 function costUSD(u,model){
@@ -781,15 +789,23 @@ function buildModelSelect(){
   modelSelect.innerHTML='';
   p.models.forEach(m=>{
     const o=document.createElement('option');o.value=m.id;
-    o.textContent=prettyModel(m.id)+(m.rec?'（推薦）':'')+(m.stronger?'（更強，可能花費更高）':'');
+    o.textContent=prettyModel(m.id)+(m.budget?'（省錢，準確度較低）':'')+(m.rec?'（推薦）':'')+(m.stronger?'（更強，花費較高）':'');
     if(m.id===currentModel)o.selected=true;
     modelSelect.appendChild(o);
   });
   updateModelPick();
 }
 function updateModelPick(){
-  document.getElementById('modelPick').innerHTML=
-    `目前使用：<b>${PROVIDERS[currentProvider].label} · ${prettyModel(currentModel)}</b>`;
+  const m=PROVIDERS[currentProvider].models.find(x=>x.id===currentModel);
+  let html=`目前使用：<b>${PROVIDERS[currentProvider].label} · ${prettyModel(currentModel)}</b>`;
+  // Budget models hallucinate more — warn explicitly (text + ⚠️ glyph, not colour-only).
+  if(m&&m.budget){
+    html+=`<div style="margin-top:6px;padding:7px 9px;border:1px solid #d9a441;border-radius:7px;`+
+      `background:#fdf6e3;font-size:12px;line-height:1.5;color:#7a5a10">`+
+      `⚠️ <b>省錢模型</b>：失真／幻覺機率偏高，引用原文可能不準。僅建議用於「快速判斷論文是否有嚴重偏誤」，`+
+      `<b>不適合正式評讀</b>。要可信的結果請改用「推薦」或「更強」模型。</div>`;
+  }
+  document.getElementById('modelPick').innerHTML=html;
 }
 modelSelect.addEventListener('change',()=>{currentModel=modelSelect.value;updateModelPick();});
 
@@ -1297,7 +1313,9 @@ function prettyModel(id){
     'claude-haiku-4-5':'Claude Haiku 4.5','claude-haiku-4-5-20251001':'Claude Haiku 4.5',
     'claude-fable-5':'Claude Fable 5',
     'gemini-2.5-flash':'Gemini 2.5 Flash','gemini-2.5-pro':'Gemini 2.5 Pro',
-    'gpt-4o-mini':'GPT-4o mini','gpt-4o':'GPT-4o'};
+    'gemini-3.1-flash-lite':'Gemini 3.1 Flash-Lite','gemini-3.1-pro':'Gemini 3.1 Pro',
+    'gpt-4o-mini':'GPT-4o mini','gpt-4o':'GPT-4o',
+    'gpt-5.4-mini':'GPT-5.4 mini','gpt-5.4':'GPT-5.4'};
   if(map[id])return map[id];
   const words=[],nums=[];
   id.split('-').forEach(p=>{p.match(/^\d+$/)?nums.push(p):words.push(p.charAt(0).toUpperCase()+p.slice(1));});

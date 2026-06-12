@@ -154,7 +154,7 @@ function b64ToBlob(b64) {
  * @param {string} [opts.cacheTtl] accepted for interface parity; ignored (implicit caching)
  * @returns {{ assess, scan, translate, summarize }} adapter
  */
-export function createOpenAIAdapter({ apiKey, model = "gpt-4o-mini", cacheTtl }) {
+export function createOpenAIAdapter({ apiKey, model = "gpt-5.4", cacheTtl }) {
   const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
 
   // Lazy PDF upload: upload once on first scan/assess call, cache the file_id.
