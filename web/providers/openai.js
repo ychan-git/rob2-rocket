@@ -313,5 +313,21 @@ export function createOpenAIAdapter({ apiKey, model = "gpt-4o-mini", cacheTtl })
       const usage = normUsage(resp.usage);
       return { text: resp.output_text, usage };
     },
+
+    /**
+     * Delete the uploaded PDF file from the user's OpenAI account.
+     * Called automatically by the engine after scan/run completes.
+     * Errors are swallowed — a missing or already-deleted file is harmless.
+     */
+    async cleanup() {
+      if (!_fileIdPromise) return;
+      try {
+        const fileId = await _fileIdPromise;
+        await client.files.delete(fileId);
+      } catch {
+        // Silently ignore: file may have already been deleted or never uploaded.
+      }
+      _fileIdPromise = null;
+    },
   };
 }

@@ -82,8 +82,13 @@ export async function scanOutcomes({
   cacheTtl,
 }) {
   const adapter = await createAdapter(provider, { apiKey, model, cacheTtl });
-  const { title, outcomes, doc_type, doc_note } = await adapter.scan({ pdfBase64 });
-  return { title, outcomes, doc_type, doc_note };
+  try {
+    const { title, outcomes, doc_type, doc_note } = await adapter.scan({ pdfBase64 });
+    return { title, outcomes, doc_type, doc_note };
+  } finally {
+    // Fire-and-forget cleanup (noop for Anthropic/Gemini; deletes uploaded file for OpenAI).
+    Promise.resolve(adapter.cleanup?.()).catch(() => {});
+  }
 }
 
 export class RoB2Engine {
@@ -230,6 +235,13 @@ export class RoB2Engine {
   async run() {
     this.state.status = "running";
     this._emit();
+    try { return await this._run(); } finally {
+      // Fire-and-forget cleanup (noop for Anthropic/Gemini; deletes uploaded file for OpenAI).
+      this.adapterP.then(a => Promise.resolve(a.cleanup?.()).catch(() => {})).catch(() => {});
+    }
+  }
+
+  async _run() {
     for (const qid of this.order) {
       if (this._cancelled()) return this.state;
       // Check applicability BEFORE announcing as current — avoids a transient
