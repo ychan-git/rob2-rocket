@@ -113,10 +113,6 @@
   .modelrow select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg)}
   .modelpick{font-size:12px;color:var(--faint);margin-top:5px}
   .modelpick b{color:var(--muted);font-weight:600}
-  .sitefoot{flex:none;padding:7px 16px;border-top:1px solid var(--border);background:var(--panel);
-    color:var(--faint);font-size:11.5px;display:flex;align-items:center;gap:10px}
-  .sitefoot a{color:var(--muted);text-decoration:none}
-  .sitefoot a:hover{text-decoration:underline}
 
   .upload{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
   .upload h2{margin:0 0 6px;font-size:16px}
@@ -312,7 +308,7 @@
         <h2 style="margin:0 0 8px">這是什麼</h2>
         <p>一個照 <b>Cochrane 官方 RoB 2 手冊</b>跑的偏誤風險（risk of bias）評讀工具。它<b>不是</b>把論文丟給 AI 問「整體風險多少」——而是讓 AI <b>逐題、各自獨立</b>回答 22 個訊號問題（prompt 直接取自官方手冊，每題彼此看不到別題答案）。</p>
         <p><b>總風險由官方流程圖的邏輯算出來，不是 AI 的語意判斷</b>——一題一題的答案餵進 Cochrane 的判斷演算法，得出每個 domain 與 overall 的結論。確保可重現、可稽核。</p>
-        <p class="intronote">你自備所選供應商（Claude／Gemini／ChatGPT）的 API key、費用自付。key 只存在你自己的瀏覽器、只直接送給該供應商，不經過我們任何伺服器。</p>
+        <p class="intronote">你自備所選供應商（Claude／Gemini／ChatGPT）的 API key、費用自付。key 只存在你自己的瀏覽器、只直接送給該供應商，不經過我們任何伺服器——本工具<b>完全開源</b>，可自行核對：<a id="keyRepoLink" href="https://github.com/ychan-git/rob2-rocket" target="_blank" rel="noopener">GitHub 原始碼</a>。</p>
       </div>
       <h2 id="keyCardTitle">Claude (Anthropic) API key</h2>
       <!-- provider + model pickers -->
@@ -335,7 +331,6 @@
         <label class="rememberrow"><input type="checkbox" id="rememberKey"><span>在這台裝置記住目前供應商的 key（寫入此瀏覽器；公用電腦請勿勾選）</span></label>
         <div class="keystatus missing" id="keyStatus">尚未設定 key — 掃描與開始評讀會被鎖住。</div>
         <p class="keytip">💡 建議到供應商 Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a id="keyConsoleLink" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Console</a></p>
-        <p class="keytip">🔓 本工具<b>完全開源</b>，前端程式碼公開可查——你的 key 怎麼存、送去哪，都能自己核對：<a id="keyRepoLink" href="https://github.com/ychan-git/rob2-rocket" target="_blank" rel="noopener">GitHub 原始碼</a></p>
         <details class="privacypanel" id="privacyPanel">
           <summary>🔒 隱私與安全說明</summary>
           <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會直接送到你選擇的 AI 供應商官方 API（Claude → api.anthropic.com；Gemini → generativelanguage.googleapis.com；OpenAI → api.openai.com），從不送到我們或任何第三方。</p>
@@ -448,11 +443,6 @@
     <div class="usage" id="usageBox" style="display:none"></div>
   </div>
 </div>
-
-<footer class="sitefoot">
-  <a id="footRepoLink" href="#" target="_blank" rel="noopener">原始碼 (GitHub)</a>
-  <span id="buildInfo"></span>
-</footer>
 
 <script type="module">
 import { RoB2Engine, scanOutcomes, translateAnswers } from "./engine.js";
@@ -941,7 +931,7 @@ document.getElementById('privacyToggle').onclick=()=>{
   applyProviderChrome();
   if(sessionKeys[currentProvider]){apiKeyInput.value=sessionKeys[currentProvider];rememberCb.checked=true;}
   // wire the repo links (footer + privacy panel) to the single REPO_URL constant
-  ['footRepoLink','privacyRepoLink','privacyRepoLink2','keyRepoLink'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
+  ['privacyRepoLink','privacyRepoLink2','keyRepoLink'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
   // start collapsed when a key is already present (remembered + rehydrated); else expanded
   if(getKey())collapseKeyCard();
 })();
