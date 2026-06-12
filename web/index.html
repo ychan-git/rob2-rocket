@@ -266,7 +266,7 @@
 </head>
 <body>
 <header>
-  <span class="title" id="trialTitle">RoB 2</span>
+  <span class="title" id="trialTitle">RoB2 Rocket</span>
   <span class="meta trunc" id="trialMeta"></span>
   <span class="badge model" id="modelBadge">⚙︎ —</span>
   <div class="progbar"><div id="progFill"></div></div>
@@ -305,10 +305,10 @@
     <!-- full editor: shown when NO key is set, or when "變更" is clicked -->
     <div class="keycard" id="keyCard">
       <div class="intro">
-        <h2 style="margin:0 0 8px">這是什麼</h2>
-        <p>一個照 <b>Cochrane 官方 RoB 2 手冊</b>跑的偏誤風險（risk of bias）評讀工具。它<b>不是</b>把論文丟給 AI 問「整體風險多少」——而是讓 AI <b>逐題、各自獨立</b>回答 22 個訊號問題（prompt 直接取自官方手冊，每題彼此看不到別題答案）。</p>
-        <p><b>總風險由官方流程圖的邏輯算出來，不是 AI 的語意判斷</b>——一題一題的答案餵進 Cochrane 的判斷演算法，得出每個 domain 與 overall 的結論。確保可重現、可稽核。</p>
-        <p class="intronote">你自備所選供應商（Claude／Gemini／ChatGPT）的 API key、費用自付。key 只存在你自己的瀏覽器、只直接送給該供應商，不經過我們任何伺服器——本工具<b>完全開源</b>，可自行核對：<a id="keyRepoLink" href="https://github.com/ychan-git/rob2-rocket" target="_blank" rel="noopener">GitHub 原始碼</a>。</p>
+        <h2 style="margin:0 0 8px">RoB2 Rocket 評讀工具是什麼？</h2>
+        <p>我們會將 RCT 依照 <b>Cochrane 官方 RoB 2 手冊</b>依序回答 22 個問題。每題皆由 Subagent <b>獨立評讀</b>，互不影響，以符合官方精神。總風險依照手冊中的流程圖由<b>程式計算</b>，並非讓 AI <b>評語意輸出</b>。</p>
+        <p class="intronote">請自備所選供應商（Claude／Gemini／ChatGPT）的 API key，費用自付。API key 只存在你自己的瀏覽器、只直接送給該供應商，不經過我們任何伺服器。</p>
+        <p class="intronote">🔓 本工具前端程式碼公開可查，你的 key 怎麼存、送去哪，都能自己核對：<a id="keyRepoLink" href="https://github.com/ychan-git/rob2-rocket" target="_blank" rel="noopener">GitHub 原始碼</a></p>
       </div>
       <h2 id="keyCardTitle">Claude (Anthropic) API key</h2>
       <!-- provider + model pickers -->
@@ -792,7 +792,7 @@ function buildProviderUI(){
     const lab=document.createElement('label');
     lab.className='provseg'+(sel?' sel':'');
     lab.innerHTML=`<input type="radio" name="llmProvider" value="${id}" ${sel?'checked':''}>`+
-      `<span>${sel?'<span class="provmark">✓ </span>':''}${p.label}</span>`;
+      `<span>${p.label}</span>`;
     lab.querySelector('input').onchange=()=>switchProvider(id);
     pr.appendChild(lab);
   });
@@ -1478,7 +1478,7 @@ function clearAll(){
   document.getElementById('overallVal').textContent='—';document.getElementById('overallVal').className='big';
   document.getElementById('progFill').style.width='0';document.getElementById('progText').textContent='0 / 22';
   document.getElementById('modelBadge').textContent='⚙︎ —';
-  {const tt=document.getElementById('trialTitle');tt.textContent='RoB 2';tt.title='';}document.getElementById('trialMeta').textContent='';
+  {const tt=document.getElementById('trialTitle');tt.textContent='RoB2 Rocket';tt.title='';}document.getElementById('trialMeta').textContent='';
   document.getElementById('summaryBody').innerHTML='';
   document.getElementById('nowCard').classList.remove('done-mode');
   document.querySelector('#nowCard .lead').style.display='';
