@@ -15,7 +15,9 @@
  */
 
 // Pinned for reproducibility — bump deliberately, not implicitly.
-import OpenAI from "https://esm.sh/openai@4.77.0";
+// ?bundle collapses the SDK's ~20 submodule imports into one file (the un-bundled build's
+// long import chain was failing dynamic import in the browser); 5.x has the Responses API.
+import OpenAI from "https://esm.sh/openai@5.12.0?bundle&target=es2022";
 import { SCAN_PROMPT, buildTranslatePrompt } from "./shared.js";
 
 // ---- JSON schemas for structured output (OpenAI strict json_schema mode) ------
