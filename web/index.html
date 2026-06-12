@@ -264,6 +264,21 @@
   .costline .costq{flex:none;width:22px;height:22px;padding:0;border-radius:50%;font-size:13px;font-weight:800;
     background:var(--panel);color:var(--accent);border:1px solid var(--accent-dim);box-shadow:none}
   .costline .costq.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* ---------- 手機 / 窄螢幕：解除桌面固定高三欄殼，改單欄垂直堆疊、整頁可捲 ---------- */
+  @media (max-width:760px){
+    body{height:auto;min-height:100vh;overflow:auto}
+    .layout{grid-template-columns:1fr;flex:none;min-height:0}
+    .col{overflow:visible;padding:14px;border:none;border-bottom:1px solid var(--border)}
+    /* 順序：中間設定/即時評讀 → 題目清單 → Domain 紅綠燈 */
+    #center{order:0} #sidebar{order:1} #rail{order:2}
+    .sidebar,.rail{background:var(--bg)}
+    header{flex-wrap:wrap;row-gap:6px;padding:8px 12px}
+    .progbar{flex-basis:100%;order:9;min-width:0}
+    .keyrow{flex-wrap:wrap}
+    .provrow{flex-wrap:wrap}
+    .provseg{flex-basis:100%}
+    .intro h2{font-size:17px}
+  }
 </style>
 </head>
 <body>
