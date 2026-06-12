@@ -995,12 +995,13 @@ document.getElementById('scanBtn').onclick=async()=>{
       j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:currentModel}); scanUsedModel=currentModel;
     }
     scanUsage=j.usage||null;   // 掃描用量計入總成本（明細獨立一行）
+    if(scanUsage)renderUsage({},currentModel);   // 掃描一完成就把成本顯示出來（評讀尚未開始，評讀那段為 0）
     const list=document.getElementById('outcomeList');list.innerHTML='';
     const outs=j.outcomes||[];
     const addRow=o=>{
       const row=document.createElement('label');row.className='orow';
       row.innerHTML=`<input type="radio" name="oc" value="${o.name.replace(/"/g,'&quot;')}">`+
-        `<span>${o.name}</span>`+(o.primary?'<span class="otag">primary</span>':'');
+        (o.primary?'<span class="otag">主要結局</span>':'')+`<span>${o.name}</span>`;
       row.querySelector('input').onchange=e=>{
         document.getElementById('fOutcome').value=o.name;
         // reveal the rest of the form (effect + start) so the next step is obvious
