@@ -74,6 +74,9 @@
   .keystatus.missing{color:var(--high)}
   .rememberrow{display:flex;align-items:flex-start;gap:7px;margin-top:10px;font-size:12.5px;color:var(--muted);line-height:1.5;cursor:pointer}
   .rememberrow input{margin-top:2px;flex:none}
+  .intro{margin:0 0 18px;padding:0 0 16px;border-bottom:1px solid var(--panel2)}
+  .intro p{margin:8px 0 0;color:var(--ink,inherit);font-size:14px;line-height:1.7}
+  .intro .intronote{margin-top:12px;color:var(--muted);font-size:12.5px}
   .keytip{margin:12px 0 0;color:var(--muted);font-size:12.5px;line-height:1.6;background:var(--panel2);border-radius:8px;padding:9px 11px}
   .keytip a{color:var(--accent);font-weight:600;white-space:nowrap}
   .privacypanel{margin-top:12px;border:1px solid var(--border);border-radius:8px;background:var(--panel2);font-size:12.5px;line-height:1.6}
@@ -275,7 +278,7 @@
     <span class="zlabel" id="zoomLabel">100%</span>
     <button class="ghost" id="zoomIn" aria-label="放大">A+</button>
   </span>
-  <button class="ghost" id="resetBtn">↻ 新評讀</button>
+  <button class="ghost" id="resetBtn">■ 停止</button>
 </header>
 
 <div class="layout">
@@ -303,6 +306,12 @@
 
     <!-- full editor: shown when NO key is set, or when "變更" is clicked -->
     <div class="keycard" id="keyCard">
+      <div class="intro">
+        <h2 style="margin:0 0 8px">這是什麼</h2>
+        <p>一個照 <b>Cochrane 官方 RoB 2 手冊</b>跑的偏誤風險（risk of bias）評讀工具。它<b>不是</b>把論文丟給 AI 問「整體風險多少」——而是讓 AI <b>逐題、各自獨立</b>回答 22 個訊號問題（prompt 直接取自官方手冊，每題彼此看不到別題答案）。</p>
+        <p><b>總風險由官方流程圖的邏輯算出來，不是 AI 的語意判斷</b>——一題一題的答案餵進 Cochrane 的判斷演算法，得出每個 domain 與 overall 的結論。確保可重現、可稽核。</p>
+        <p class="intronote">你自備所選供應商（Claude／Gemini／ChatGPT）的 API key、費用自付。key 只存在你自己的瀏覽器、只直接送給該供應商，不經過我們任何伺服器。</p>
+      </div>
       <h2 id="keyCardTitle">Claude (Anthropic) API key</h2>
       <!-- provider + model pickers -->
       <label style="display:block;font-size:12px;color:var(--muted);margin:0 0 4px;font-weight:600">選擇 LLM 供應商</label>
@@ -324,6 +333,7 @@
         <label class="rememberrow"><input type="checkbox" id="rememberKey"><span>在這台裝置記住目前供應商的 key（寫入此瀏覽器；公用電腦請勿勾選）</span></label>
         <div class="keystatus missing" id="keyStatus">尚未設定 key — 掃描與開始評讀會被鎖住。</div>
         <p class="keytip">💡 建議到供應商 Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a id="keyConsoleLink" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Console</a></p>
+        <p class="keytip">🔓 本工具<b>完全開源</b>，前端程式碼公開可查——你的 key 怎麼存、送去哪，都能自己核對：<a id="keyRepoLink" href="https://github.com/ychan-git/rob2-rocket" target="_blank" rel="noopener">GitHub 原始碼</a></p>
         <details class="privacypanel" id="privacyPanel">
           <summary>🔒 隱私與安全說明</summary>
           <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會直接送到你選擇的 AI 供應商官方 API（Claude → api.anthropic.com；Gemini → generativelanguage.googleapis.com；OpenAI → api.openai.com），從不送到我們或任何第三方。</p>
@@ -458,15 +468,27 @@ const REPO_URL = "https://github.com/ychan-git/rob2-rocket";
    verbatim-quote field with its own analysis — which destroys RoB 2's auditable evidence
    trail. Below Sonnet you may as well judge a paper by impact factor / journal quartile.
    Update ids here + PRICING below as models are superseded — adapters don't hard-code ids. */
+/* `scan:` = the cheapest model for the OUTCOME SCAN only (列結局 + 抓標題 + 文件分類).
+   Scan does NOT affect the RoB 2 judgment (the user confirms the outcome; doc-type is a soft
+   warning), so running it cheap is zero-risk on quality and saves the one full-price, UNCACHED
+   PDF read each scan does. ~10–12% of a single-paper run on the chosen model (more on Opus).
+   These ids were live + verified in the dropped budget tier (2026-06). If a cheap id is later
+   delisted/renamed (Gemini's `-preview` churn is the live risk), the scan caller auto-retries on
+   the chosen model — so a stale `scan` id degrades cost only, never correctness. */
 const PROVIDERS={
   anthropic:{ label:"Claude (Anthropic)", keyHint:"sk-ant-…", keyUrl:"https://console.anthropic.com/settings/keys",
+    scan:"claude-haiku-4-5-20251001",
     models:[ {id:"claude-sonnet-4-6", rec:true}, {id:"claude-opus-4-8", stronger:true} ] },
   gemini:   { label:"Gemini (Google)", keyHint:"AIza…", keyUrl:"https://aistudio.google.com/apikey",
+    scan:"gemini-3.1-flash-lite",
     models:[ {id:"gemini-3.1-pro-preview", rec:true} ] },
   openai:   { label:"ChatGPT (OpenAI)", keyHint:"sk-…", keyUrl:"https://platform.openai.com/api-keys",
+    scan:"gpt-5.4-mini",
     models:[ {id:"gpt-5.4", rec:true} ] },
 };
 function recModel(prov){const m=(PROVIDERS[prov].models.find(x=>x.rec)||PROVIDERS[prov].models[0]);return m.id;}
+// Cheapest model for the outcome scan; falls back to the chosen model if no `scan` id is set.
+function scanModel(prov){return PROVIDERS[prov].scan||currentModel;}
 let currentProvider='anthropic';                 // default provider
 let currentModel=recModel(currentProvider);      // default model = the provider's rec model
 
@@ -914,7 +936,7 @@ document.getElementById('privacyToggle').onclick=()=>{
   applyProviderChrome();
   if(sessionKeys[currentProvider]){apiKeyInput.value=sessionKeys[currentProvider];rememberCb.checked=true;}
   // wire the repo links (footer + privacy panel) to the single REPO_URL constant
-  ['footRepoLink','privacyRepoLink','privacyRepoLink2'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
+  ['footRepoLink','privacyRepoLink','privacyRepoLink2','keyRepoLink'].forEach(id=>{const a=document.getElementById(id);if(a)a.href=REPO_URL;});
   // start collapsed when a key is already present (remembered + rehydrated); else expanded
   if(getKey())collapseKeyCard();
 })();
@@ -944,7 +966,16 @@ document.getElementById('scanBtn').onclick=async()=>{
   document.getElementById('scanHint').textContent='掃描中…（呼叫一次 AI 讀取全文）';
   try{
     const pdfBase64=await pdfToBase64(f);
-    const j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:currentModel});
+    // Scan on the provider's cheapest model (scanModel). If that id is unavailable
+    // (e.g. a renamed/delisted cheap model), retry once on the chosen model so a stale
+    // id only costs more, never breaks the scan.
+    const scanM=scanModel(currentProvider);
+    let j;
+    try{ j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:scanM}); }
+    catch(scanErr){
+      if(scanM===currentModel)throw scanErr;
+      j=await scanOutcomes({apiKey,pdfBase64,provider:currentProvider,model:currentModel});
+    }
     const list=document.getElementById('outcomeList');list.innerHTML='';
     const outs=j.outcomes||[];
     const addRow=o=>{
