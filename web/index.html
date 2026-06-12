@@ -295,9 +295,9 @@
       </div>
       <details class="privacypanel" id="privacyPopover">
         <summary>🔒 隱私與安全說明</summary>
-        <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會直接送到你選擇的 AI 供應商官方 API（Claude → api.anthropic.com；Gemini → generativelanguage.googleapis.com），從不送到我們或任何第三方。</p>
+        <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會直接送到你選擇的 AI 供應商官方 API（Claude → api.anthropic.com；Gemini → generativelanguage.googleapis.com；OpenAI → api.openai.com），從不送到我們或任何第三方。</p>
         <p>原始碼公開：<a id="privacyRepoLink2" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往你選擇的供應商。</p>
-        <p>本頁會連線的網域：你所選供應商的 API（api.anthropic.com 或 generativelanguage.googleapis.com）、esm.sh（載入該供應商的 SDK）、mermaid 的 CDN（畫流程圖）。</p>
+        <p>本頁會連線的網域：你所選供應商的 API（api.anthropic.com、generativelanguage.googleapis.com 或 api.openai.com）、esm.sh（載入該供應商的 SDK）、mermaid 的 CDN（畫流程圖）。</p>
       </details>
     </div>
 
@@ -326,9 +326,9 @@
         <p class="keytip">💡 建議到供應商 Console 另開一把專用 API key、設定花費上限，需要時可隨時撤銷——這樣即使外洩，損失也僅限你設定的上限。<a id="keyConsoleLink" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">開啟 Console</a></p>
         <details class="privacypanel" id="privacyPanel">
           <summary>🔒 隱私與安全說明</summary>
-          <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會直接送到你選擇的 AI 供應商官方 API（Claude → api.anthropic.com；Gemini → generativelanguage.googleapis.com），從不送到我們或任何第三方。</p>
+          <p>本工具沒有後端伺服器。你的 API key 只存在你自己的瀏覽器，只會直接送到你選擇的 AI 供應商官方 API（Claude → api.anthropic.com；Gemini → generativelanguage.googleapis.com；OpenAI → api.openai.com），從不送到我們或任何第三方。</p>
           <p>原始碼公開：<a id="privacyRepoLink" href="#" target="_blank" rel="noopener">在 GitHub 查看</a>。你也可以打開瀏覽器的開發者工具 →「Network」分頁，自行確認 key 只送往你選擇的供應商。</p>
-          <p>本頁會連線的網域：你所選供應商的 API（api.anthropic.com 或 generativelanguage.googleapis.com）、esm.sh（載入該供應商的 SDK）、mermaid 的 CDN（畫流程圖）。</p>
+          <p>本頁會連線的網域：你所選供應商的 API（api.anthropic.com、generativelanguage.googleapis.com 或 api.openai.com）、esm.sh（載入該供應商的 SDK）、mermaid 的 CDN（畫流程圖）。</p>
         </details>
       </div>
     </div>
@@ -450,12 +450,14 @@ const REPO_URL = "https://github.com/ychan-git/rob2-rocket";
 /* ---------- LLM provider / model catalog ----------
    The `rec:true` model is the DEFAULT (cheapest-but-capable) for that provider and is
    also used for the (cheaper) translation pass. The `stronger:true` model is labelled
-   「（更強，可能花費更高）」in the UI. Leave room for ChatGPT later — don't add it now. */
+   「（更強，可能花費更高）」in the UI. */
 const PROVIDERS={
   anthropic:{ label:"Claude (Anthropic)", keyHint:"sk-ant-…", keyUrl:"https://console.anthropic.com/settings/keys",
     models:[ {id:"claude-sonnet-4-6", rec:true}, {id:"claude-opus-4-8", stronger:true} ] },
   gemini:   { label:"Gemini (Google)", keyHint:"AIza…", keyUrl:"https://aistudio.google.com/apikey",
     models:[ {id:"gemini-2.5-flash", rec:true}, {id:"gemini-2.5-pro", stronger:true} ] },
+  openai:   { label:"ChatGPT (OpenAI)", keyHint:"sk-…", keyUrl:"https://platform.openai.com/api-keys",
+    models:[ {id:"gpt-4o-mini", rec:true}, {id:"gpt-4o", stronger:true} ] },
 };
 function recModel(prov){const m=(PROVIDERS[prov].models.find(x=>x.rec)||PROVIDERS[prov].models[0]);return m.id;}
 let currentProvider='anthropic';                 // default provider
@@ -544,6 +546,8 @@ const PRICING={
   "claude-opus-4-7":{in:5,out:25,cw:6.25,cr:0.50},
   "gemini-2.5-flash":{in:0.30, out:2.50, cw:0, cr:0.075},
   "gemini-2.5-pro":{in:1.25, out:10.00, cw:0, cr:0.3125},
+  "gpt-4o-mini":   {in:0.15, out:0.60,  cw:0, cr:0.075},
+  "gpt-4o":        {in:2.50, out:10.00, cw:0, cr:1.25},
 };
 let TWD=31.6;
 function costUSD(u,model){
@@ -749,7 +753,7 @@ document.getElementById('gToggle').onclick=()=>{
    when nothing is persisted. Each provider persists to its own localStorage entry. */
 const KEY_LS_PREFIX='rob2_key_';                 // e.g. rob2_key_anthropic / rob2_key_gemini
 const keyLS=prov=>KEY_LS_PREFIX+prov;
-let sessionKeys={anthropic:"",gemini:""};        // in-memory key per provider (source of truth)
+let sessionKeys={anthropic:"",gemini:"",openai:""}; // in-memory key per provider (source of truth)
 function getKey(){return (sessionKeys[currentProvider]||'').trim();}
 const apiKeyInput=document.getElementById('apiKey');
 const rememberCb=document.getElementById('rememberKey');
@@ -837,7 +841,7 @@ function refreshKeyState(){
   const k=getKey();
   const st=document.getElementById('keyStatus');
   if(k){
-    const dest=currentProvider==='gemini'?'Google（Gemini）':'Anthropic';
+    const dest=currentProvider==='gemini'?'Google（Gemini）':currentProvider==='openai'?'OpenAI':'Anthropic';
     st.className='keystatus ok';
     st.textContent=rememberCb.checked
       ? `✓ ${PROVIDERS[currentProvider].label} key 已設定，並已記在這台瀏覽器（只會直接送往 ${dest}）。`
@@ -1292,7 +1296,8 @@ function prettyModel(id){
   const map={'claude-sonnet-4-6':'Claude Sonnet 4.6','claude-opus-4-8':'Claude Opus 4.8',
     'claude-haiku-4-5':'Claude Haiku 4.5','claude-haiku-4-5-20251001':'Claude Haiku 4.5',
     'claude-fable-5':'Claude Fable 5',
-    'gemini-2.5-flash':'Gemini 2.5 Flash','gemini-2.5-pro':'Gemini 2.5 Pro'};
+    'gemini-2.5-flash':'Gemini 2.5 Flash','gemini-2.5-pro':'Gemini 2.5 Pro',
+    'gpt-4o-mini':'GPT-4o mini','gpt-4o':'GPT-4o'};
   if(map[id])return map[id];
   const words=[],nums=[];
   id.split('-').forEach(p=>{p.match(/^\d+$/)?nums.push(p):words.push(p.charAt(0).toUpperCase()+p.slice(1));});

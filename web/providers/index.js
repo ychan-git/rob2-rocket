@@ -23,5 +23,9 @@ export async function createAdapter(provider, opts) {
     const m = await import("./gemini.js");
     return m.createGeminiAdapter(opts);
   }
+  if (provider === "openai") {
+    const m = await import("./openai.js");
+    return m.createOpenAIAdapter(opts);
+  }
   throw new Error(`Unknown provider: ${provider}`);
 }
