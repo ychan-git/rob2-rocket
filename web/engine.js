@@ -117,6 +117,10 @@ export class RoB2Engine {
     this.adapterP = createAdapter(provider, { apiKey, model, cacheTtl });
     this.onUpdate = onUpdate || (() => {});
     this.signal = signal; // AbortSignal; aborted externally to cancel mid-run
+    // Prompt-cache warm-up gate: the first assess() call runs alone to write the
+    // shared cache block; the rest wait on this promise, then fire concurrently.
+    this._warmStarted = false;
+    this._warmReady = new Promise((res) => { this._warmResolve = res; });
     this.order = this.domains.flatMap((d) => d.questions.map((q) => q.id));
     this.qlookup = {};
     for (const d of this.domains) {
@@ -127,7 +131,7 @@ export class RoB2Engine {
       model: this.model,
       effect: this.effect,
       result: this.result,
-      current: null,
+      current: {}, // { [domainId]: qid|null } — one in-flight question per parallel domain
       answers: {},
       domains: {},
       overall: null,
@@ -222,12 +226,30 @@ export class RoB2Engine {
 
   async _ask(qid) {
     const adapter = await this.adapterP;
-    const { answer, quote, rationale, usage } = await adapter.assess({
+    const args = {
       systemText: this.systemText,
       pdfBase64: this.pdfB64,
       questionPrompt: this._questionPrompt(qid),
       signal: this.signal,
-    });
+    };
+    // Cache warm-up: the very first assess() runs ALONE and writes the shared cache
+    // block (KB system + PDF document). Every other call waits for it, then fires
+    // concurrently — so the parallel domains all hit the warm cache (~0.1× input)
+    // instead of each paying a separate cache write (1.25×). No extra tokens: the
+    // warming call is simply one of the 22 questions.
+    let res;
+    if (!this._warmStarted) {
+      this._warmStarted = true;
+      try {
+        res = await adapter.assess(args);
+      } finally {
+        this._warmResolve(); // release the gate even if the warming call failed
+      }
+    } else {
+      await this._warmReady;
+      res = await adapter.assess(args);
+    }
+    const { answer, quote, rationale, usage } = res;
     this._accumulateUsage(usage);
     return { answer, quote, rationale };
   }
@@ -242,33 +264,25 @@ export class RoB2Engine {
   }
 
   async _run() {
-    for (const qid of this.order) {
-      if (this._cancelled()) return this.state;
-      // Check applicability BEFORE announcing as current — avoids a transient
-      // state where the UI shows "current=4.4" while 4.3=N/PN (which would
-      // cause the wrong flowchart arc to light up for one poll cycle).
-      if (!isApplicable(qid, this.state.answers, this.effect)) {
-        this.state.answers[qid] = {
-          answer: "NA",
-          quote: "",
-          rationale: "Not applicable given previous answers (conditional question).",
-          ts: Date.now() / 1000,
-        };
-        this._maybeJudgeDomain(qid); // a domain whose LAST question is NA must still be judged
-        this._emit();
-        continue;
-      }
-      this.state.current = qid;
-      this._emit();
-      const result = await this._ask(qid);
-      if (this._cancelled()) return this.state; // check after the blocking API call returns
-      result.ts = Date.now() / 1000;
-      this.state.answers[qid] = result;
-      this._maybeJudgeDomain(qid);
-      this._emit();
+    // Run all domains CONCURRENTLY. RoB 2 domains are independent — no domain's
+    // answers affect another's questions (isApplicable only reads within-domain
+    // answers) — so parallelism is faithful to the tool, not a shortcut. Within a
+    // domain the questions stay sequential (conditional routing needs prior answers).
+    // Wall-clock drops from ~22 questions to ~the longest single domain. The first
+    // question to fire warms the prompt cache (see _ask); the rest then run in parallel.
+    const results = await Promise.allSettled(this.domains.map((d) => this._runDomain(d)));
+    if (this._cancelled()) return this.state;
+
+    // Error isolation: a failing domain doesn't abort the others (allSettled lets
+    // them finish), but we surface the first failure so the UI shows a real error.
+    const failed = results.find((r) => r.status === "rejected");
+    if (failed) {
+      const e = failed.reason;
+      throw e instanceof Error ? e : new Error(e ? String(e) : "assessment failed");
     }
+
     this.state.overall = judgeOverall(this.state.domains);
-    this.state.current = null;
+    this.state.current = {};
     // plain-language Chinese summary for non-specialists
     this.state.status = "summarizing";
     this._emit();
@@ -281,6 +295,38 @@ export class RoB2Engine {
     this.state.status = "done";
     this._emit();
     return this.state;
+  }
+
+  // One sequential lane over a single domain's questions (runs concurrently with
+  // the other domains' lanes). Throws on an API failure so _run can surface it.
+  async _runDomain(dom) {
+    for (const q of dom.questions) {
+      if (this._cancelled()) return;
+      const qid = q.id;
+      // Check applicability BEFORE announcing as current — avoids a transient state
+      // where the UI shows current=2.7 while 2.6=N (lighting the wrong flowchart arc).
+      if (!isApplicable(qid, this.state.answers, this.effect)) {
+        this.state.answers[qid] = {
+          answer: "NA",
+          quote: "",
+          rationale: "Not applicable given previous answers (conditional question).",
+          ts: Date.now() / 1000,
+        };
+        this._maybeJudgeDomain(qid); // a domain whose LAST question is NA must still be judged
+        this._emit();
+        continue;
+      }
+      this.state.current[dom.id] = qid;
+      this._emit();
+      const result = await this._ask(qid);
+      if (this._cancelled()) return;
+      result.ts = Date.now() / 1000;
+      this.state.answers[qid] = result;
+      this.state.current[dom.id] = null;
+      this._maybeJudgeDomain(qid);
+      this._emit();
+    }
+    this.state.current[dom.id] = null;
   }
 
   async _makeSummary() {

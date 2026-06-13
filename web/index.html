@@ -32,16 +32,57 @@
   .zoomctl .zlabel{font-size:11.5px;color:var(--faint);min-width:38px;text-align:center;font-variant-numeric:tabular-nums}
   .badge{padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;border:1px solid var(--border);background:var(--panel2)}
   .badge.model{color:var(--accent);border-color:var(--accent-dim);background:#f2f7ff}
+  /* cost moved into the header (was the right rail); "?" pops the detailed breakdown */
+  .costline{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);flex:none;white-space:nowrap}
+  .costline b{color:var(--text)}
+  .costline .costq{width:18px;height:18px;min-width:0;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--panel);border:1px solid var(--border);font-weight:800;font-size:11px;color:var(--faint);box-shadow:none}
+  .costline .costq.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .usage.headerpop{position:fixed;top:46px;right:14px;width:380px;max-width:calc(100vw - 28px);z-index:40;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 22px rgba(20,40,80,.16);
+    font-size:12px;color:var(--muted);padding:12px 14px;line-height:1.7}
   .progbar{flex:1;min-width:160px;height:8px;background:var(--panel2);border-radius:6px;overflow:hidden}
   .progbar > div{height:100%;background:linear-gradient(90deg,var(--accent),#6f8efb);width:0;transition:width .4s}
   button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 15px;font-weight:600;cursor:pointer;font-size:13px;box-shadow:var(--shadow)}
   button.ghost{background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:none}
   button:disabled{opacity:.45;cursor:default}
 
-  /* right "Domain 判斷" column slimmed 300px → 210px; the freed width goes to the center 1fr panel */
-  .layout{display:grid;grid-template-columns:290px 1fr 210px;gap:0;flex:1;min-height:0}
+  /* Two columns: left = 5 parallel domain lanes + overall; right = the focused domain's
+     flowchart / current question / history. The old right "Domain 判斷" rail is gone —
+     each lane shows its own verdict, so a separate traffic-light column was redundant. */
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:0;flex:1;min-height:0}
   .col{overflow-y:auto;padding:18px}
   .sidebar{border-right:1px solid var(--border);background:var(--panel)}
+
+  /* ---- left rail: parallel domain lanes ---- */
+  .lane{border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:11px;background:var(--panel);cursor:pointer;transition:.15s}
+  .lane:hover{border-color:var(--accent-dim)}
+  .lane.focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim);background:#fafcff}
+  .lane .lh{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .lane .dnum{font-size:11px;font-weight:700;color:#fff;background:var(--faint);border-radius:6px;padding:1px 7px;flex:none}
+  .lane.focus .dnum{background:var(--accent)}
+  .lane .dn{font-size:13px;font-weight:700}
+  .lane .sub{font-size:11.5px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+  .lane .dots{display:flex;gap:4px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+  .lane .dots .d{width:9px;height:9px;border-radius:50%;background:var(--border)}
+  .lane .dots .d.ok{background:var(--low)}
+  .lane .dots .d.cur{background:var(--accent);box-shadow:0 0 0 3px rgba(47,109,240,.18);animation:lanepulse 1.2s infinite}
+  .lane .dots .d.na{background:var(--na);opacity:.55}
+  @keyframes lanepulse{0%,100%{box-shadow:0 0 0 3px rgba(47,109,240,.18)}50%{box-shadow:0 0 0 5px rgba(47,109,240,.05)}}
+  .lane .stat{display:flex;align-items:center;gap:7px;font-size:12px;flex-wrap:wrap}
+  .lane .lverdict{font-weight:700;padding:2px 9px;border-radius:6px;font-size:11.5px;display:inline-flex;align-items:center;gap:5px}
+  .lane .lverdict.low{color:var(--low);background:#eaf7f0;border:1px solid #bfe6d2}
+  .lane .lverdict.some{color:var(--some);background:#fcf5e3;border:1px solid #f0dca8}
+  .lane .lverdict.high{color:var(--high);background:#fbeceb;border:1px solid #f3c4c0}
+  .lane .lrun{color:var(--accent);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+  .lane .lwait{color:var(--faint)}
+  .lane .nowq{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4;border-left:2px solid var(--accent-dim);padding-left:8px;flex-basis:100%}
+  /* overall verdict — sits below the lanes (the domains feed into it) */
+  .overall{margin-top:6px;padding:15px 14px;border:1px solid var(--border);border-radius:14px;background:var(--panel);text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--accent)}
+  .overall .olbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+  .overall .oval{font-size:17px;font-weight:800;margin:9px 0 8px;display:inline-flex;align-items:center;gap:8px;color:var(--accent)}
+  .overall .oval.Low{color:var(--low)} .overall .oval.Some{color:var(--some)} .overall .oval.High{color:var(--high)}
+  .overall .oval .spinner{width:13px;height:13px}
+  .overall .onote{font-size:11px;color:var(--faint);line-height:1.5}
   /* 開始評讀前：左右兩欄淡化（仍看得到 22 題清單＋紅綠燈，讓使用者先看懂運作），開始後恢復全亮 */
   .col.predim{opacity:.4;transition:opacity .35s ease}
   .rail{border-left:1px solid var(--border);background:var(--panel)}
@@ -269,9 +310,10 @@
     body{height:auto;min-height:100vh;overflow:auto}
     .layout{grid-template-columns:1fr;flex:none;min-height:0}
     .col{overflow:visible;padding:14px;border:none;border-bottom:1px solid var(--border)}
-    /* 順序：中間設定/即時評讀 → 題目清單 → Domain 紅綠燈 */
-    #center{order:0} #sidebar{order:1} #rail{order:2}
-    .sidebar,.rail{background:var(--bg)}
+    /* 順序：中間設定/即時評讀（焦點 domain）→ 5 軌並行進度 */
+    #center{order:0} #sidebar{order:1}
+    .sidebar{background:var(--bg)}
+    .usage.headerpop{position:static;width:auto;max-width:none;box-shadow:none;order:9;flex-basis:100%}
     header{flex-wrap:wrap;row-gap:6px;padding:8px 12px}
     .progbar{flex-basis:100%;order:9;min-width:0}
     .keyrow{flex-wrap:wrap}
@@ -288,6 +330,10 @@
   <span class="badge model" id="modelBadge">⚙︎ —</span>
   <div class="progbar"><div id="progFill"></div></div>
   <span class="meta" id="progText">0 / 22</span>
+  <span class="costline" id="costLine" style="display:none">
+    <span id="costVal">估計成本 <b>NT$0.00</b></span>
+    <button class="costq" id="costToggle" type="button" title="如何計算？">?</button>
+  </span>
   <span class="zoomctl" title="調整介面字級／縮放">
     <button class="ghost" id="zoomOut" aria-label="縮小">A−</button>
     <span class="zlabel" id="zoomLabel">100%</span>
@@ -295,9 +341,10 @@
   </span>
   <button class="ghost" id="resetBtn">■ 停止</button>
 </header>
+<div class="usage headerpop" id="usageBox" style="display:none"></div>
 
 <div class="layout">
-  <div class="col sidebar predim" id="sidebar"><h3>訊號問題進度</h3></div>
+  <div class="col sidebar predim" id="sidebar"></div>
 
   <div class="col" id="center">
     <!-- collapsed state: a single quiet line, no card chrome / heading / always-open privacy box -->
@@ -440,24 +487,6 @@
       <span class="exptoggle" id="expandToggle">展開全部</span>
     </div>
     <div id="history"></div>
-  </div>
-
-  <div class="col rail predim" id="rail">
-    <h3>Domain 判斷</h3>
-    <!-- compact traffic lights: D1–D5 only (overall lives in the OVERALL box below), each with +/?/− glyph (colour-weak safe) -->
-    <div id="railTraffic"></div>
-    <div class="tl-legend" id="railLegend">＋ 低風險　? 部分疑慮　− 高風險</div>
-    <div class="overall-box">
-      <div class="lbl">Overall Risk of Bias</div>
-      <div class="big" id="overallVal">—</div>
-    </div>
-    <div class="note">Domain 與 overall 判斷由程式依官方演算法計算，非 AI 自由判斷。</div>
-    <!-- cost-only line + a "?" toggle that reveals the detailed token breakdown -->
-    <div class="costline" id="costLine">
-      <span id="costVal">估計成本 <b>NT$0.00</b><span style="color:var(--faint)">（評讀開始後即時更新）</span></span>
-      <button class="costq" id="costToggle" type="button" title="如何計算？">?</button>
-    </div>
-    <div class="usage" id="usageBox" style="display:none"></div>
   </div>
 </div>
 
@@ -694,7 +723,7 @@ function flowDef(domId,answers,current,judging){
   g.edges.forEach((e,i)=>{if(e[3]&&e[3](answers))def+=`linkStyle ${i} stroke:#111111,stroke-width:3.5px;\n`;});
   return def;
 }
-let flowTab=null,kb=null,autoFollow=true,curState={answers:{}},flowManual=false,flowDwell=false;
+let flowTab=null,kb=null,autoFollow=true,curState={answers:{}},flowManual=false,flowDwell=false,focusDomain=1;
 async function drawFlow(domId,answers,current,judging){
   flowTab=domId;
   document.querySelectorAll('.ftab').forEach(t=>t.classList.toggle('active',+t.dataset.d===domId));
@@ -705,38 +734,77 @@ async function drawFlow(domId,answers,current,judging){
   }catch(e){document.getElementById('flowbox').textContent='（流程圖載入失敗）';}
 }
 function buildTabs(){
-  const el=document.getElementById('ftabs');el.innerHTML='';
+  const el=document.getElementById('ftabs');if(!el)return;el.innerHTML='';
   DOMAINS.forEach(d=>{
     const b=document.createElement('span');b.className='ftab';b.dataset.d=d.id;b.textContent='D'+d.id;
-    b.onclick=()=>{autoFollow=false;drawFlow(d.id,(curState.answers||{}),curState.current);};
+    b.onclick=()=>setFocus(d.id);
     el.appendChild(b);
   });
 }
 
-/* ---------- sidebar + judges ---------- */
-const CODE_LEGEND='<div class="legend"><b>回答代號</b>　Y 是　PY 可能是　PN 可能否　N 否　NI 無資訊　NA 不適用（流程未走到）</div>';
-function buildSidebar(){
-  const el=document.getElementById('sidebar');el.innerHTML='<h3>訊號問題進度</h3>'+CODE_LEGEND;
+/* ---------- left rail: 5 parallel domain lanes + overall ---------- */
+// Which domain the centre column shows. While auto-following, stay on the current focus
+// until it stops running, then move to the lowest-id domain still in progress. Clicking a
+// lane (or flowchart tab) pins the focus (autoFollow=false).
+function resolveFocus(s){
+  if(!autoFollow)return focusDomain;
+  const cur=(s&&s.current&&typeof s.current==='object')?s.current:{};
+  if(cur[focusDomain])return focusDomain;            // current focus still working — stay put
+  for(const d of DOMAINS_ACTIVE){if(cur[d.id]){focusDomain=d.id;return focusDomain;}}
+  return focusDomain;                                // nothing running — keep last focus
+}
+function setFocus(domId){
+  focusDomain=domId;autoFollow=false;
+  if(curState&&curState.status)render(curState);      // re-paint centre for the new focus
+  else drawFlow(domId,(curState.answers||{}),null);   // before a run: just switch the flowchart
+}
+function buildLanes(){
+  const el=document.getElementById('sidebar');el.innerHTML='';
   DOMAINS_ACTIVE.forEach(d=>{
-    const box=document.createElement('div');box.className='domain';
-    box.innerHTML=`<div class="dname">Domain ${d.id}：${d.name}</div>`;
-    d.qs.forEach(q=>{
-      const row=document.createElement('div');row.className='qrow';row.id='row-'+q.id;
-      row.innerHTML=`<span class="dot"></span><span class="qid">${q.id}</span><span class="qlabel" title="${q.zh||''}">${q.zh||''}</span>`;
-      box.appendChild(row);
-    });
-    el.appendChild(box);
+    const lane=document.createElement('div');lane.className='lane';lane.id='lane-'+d.id;lane.dataset.d=d.id;
+    lane.onclick=()=>setFocus(d.id);
+    lane.innerHTML=
+      `<div class="lh"><span class="dnum">D${d.id}</span><span class="dn">${d.name}</span><span class="sub" id="lane-sub-${d.id}"></span></div>`+
+      `<div class="dots" id="lane-dots-${d.id}"></div>`+
+      `<div class="stat" id="lane-stat-${d.id}"></div>`;
+    el.appendChild(lane);
   });
+  const ov=document.createElement('div');ov.className='overall';
+  ov.innerHTML=`<div class="olbl">整體偏誤風險 (Overall)</div>`+
+    `<div class="oval" id="overallVal">—</div>`+
+    `<div class="onote">5 個 domain 全部評完後，由程式依官方演算法產生，非 AI 自由判斷。</div>`;
+  el.appendChild(ov);
 }
-function buildJudges(){
-  // The slim rail no longer renders the verbose per-domain pill list; per-domain
-  // status now lives in the compact traffic lights (#railTraffic). Guard in case
-  // the #judges container is absent.
-  const el=document.getElementById('judges');if(!el)return;el.innerHTML='';
-  DOMAINS_ACTIVE.forEach(d=>el.insertAdjacentHTML('beforeend',
-    `<div class="judge"><span class="jn">D${d.id} ${d.name}</span><span class="pill pending" id="jp-${d.id}">待計算</span></div>`));
+const TLLANE={"Low":{c:"low",t:"Low 低風險",g:"✓"},"Some concerns":{c:"some",t:"Some concerns 部分疑慮",g:"?"},"High":{c:"high",t:"High 高風險",g:"✕"}};
+function renderLanes(s){
+  const cur=(s.current&&typeof s.current==='object')?s.current:{};
+  const ans=s.answers||{};const verdicts=s.domains||{};
+  DOMAINS_ACTIVE.forEach(d=>{
+    const lane=document.getElementById('lane-'+d.id);if(!lane)return;
+    lane.classList.toggle('focus',d.id===focusDomain);
+    const qs=d.qs;
+    document.getElementById('lane-sub-'+d.id).textContent=qs.filter(q=>ans[q.id]).length+' / '+qs.length;
+    document.getElementById('lane-dots-'+d.id).innerHTML=qs.map(q=>{
+      const a=ans[q.id];let c='';
+      if(a)c=a.answer==='NA'?'na':'ok';else if(cur[d.id]===q.id)c='cur';
+      return `<span class="d ${c}"></span>`;
+    }).join('');
+    const st=document.getElementById('lane-stat-'+d.id);const v=verdicts[d.id];
+    if(v){const tl=TLLANE[v]||{c:'some',t:v,g:'?'};
+      st.innerHTML=`<span class="lverdict ${tl.c}"><span>${tl.g}</span>${tl.t}</span>`;
+    }else if(cur[d.id]){const q=QMAP[cur[d.id]];
+      st.innerHTML=`<span class="lrun"><span class="spinner"></span>評讀中</span>`+(q?`<div class="nowq">正在看 ${q.id}：${q.zh||q.t}</div>`:'');
+    }else{st.innerHTML=`<span class="lwait">等待中…</span>`;}
+  });
+  // overall (sits below the lanes)
+  const ovEl=document.getElementById('overallVal');if(ovEl){
+    if(s.overall){ovEl.textContent=s.overall;ovEl.className='oval '+pillClass(s.overall);}
+    else if(s.status==='running'||s.status==='summarizing'){
+      ovEl.className='oval';ovEl.innerHTML=`<span class="spinner"></span>計算中（${Object.keys(verdicts).length} / ${DOMAINS_ACTIVE.length}）`;
+    }else{ovEl.className='oval';ovEl.textContent='—';}
+  }
 }
-function rebuildAll(){buildSidebar();buildJudges();buildTabs();renderTraffic((curState&&curState.domains)||{},curState&&curState.overall,'railTraffic');}
+function rebuildAll(){buildLanes();buildTabs();}
 
 // guard: if the mermaid CDN fails to load, don't let it break the rest of the app
 const MERMAID_OK=(typeof mermaid!=='undefined');
@@ -784,6 +852,18 @@ document.getElementById('gToggle').onclick=()=>{
   gf.classList.toggle('open');
   tg.textContent=(gf.classList.contains('open')?'▾ 收合指引':'▸ 查看本題完整指引');
 };
+// the per-question guidance text (elaboration + relevant detailed-guidance sections) that
+// was sent to the AI — same source as showGuidance(), returned as an HTML string so each
+// completed history item can embed its own collapsible "丟給 AI 的提示".
+function guidanceInner(qid){
+  const f=kb?findQ(qid):null;if(!f)return '';
+  const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const elab=(f.q.condition?'【條件題：'+f.q.condition+' 時才評】\n':'')+(f.q.elaboration||'');
+  const secs=f.q.relevant_guidance_sections||[];const lookup={};(f.d.detailed_guidance||[]).forEach(s=>lookup[s.section]=s);
+  let secHtml='';secs.forEach(sec=>{if(lookup[sec])secHtml+=`<h4>${esc(lookup[sec].section)} ${esc(lookup[sec].title)}</h4><p>${esc(lookup[sec].text)}</p>`;});
+  if(!secHtml)secHtml='<p class="rat">本題以上方 elaboration 為主要判準（無額外詳細小節）。</p>';
+  return `<p>${esc(elab).replace(/\n/g,'<br>')}</p>${secHtml}`;
+}
 
 /* ---------- API key (per-provider) ----------
    Session-only by default: keys live in an in-memory map (one slot per provider) and
@@ -1042,7 +1122,7 @@ document.getElementById('startBtn').onclick=async()=>{
   const effect=document.getElementById('fEffect').value;
   const title=document.getElementById('fTitle').value||f.name;
   buildModel(effect);rebuildAll();
-  loggedStart={};loggedDone={};lastCurrent=null;lastDomainDrawn=null;autoFollow=true;lastGuidanceQid=null;flowManual=false;flowDwell=false;
+  loggedStart={};loggedDone={};lastCurrent=null;lastDomainDrawn=null;autoFollow=true;lastGuidanceQid=null;flowManual=false;flowDwell=false;focusDomain=1;render._sig=null;
   document.getElementById('flowToggleBtn').textContent='▸ 顯示流程圖';
   // trial metadata lives UI-side (the engine state carries `result` + `effect`, not a trial object)
   trialMeta={title,outcome,effect};
@@ -1052,8 +1132,7 @@ document.getElementById('startBtn').onclick=async()=>{
     abortCtl=new AbortController();
     document.getElementById('uploadPanel').style.display='none';
     document.getElementById('summaryCard').style.display='none';
-    document.getElementById('sidebar').classList.remove('predim');   // 開始後左右兩欄恢復全亮
-    document.getElementById('rail').classList.remove('predim');
+    document.getElementById('sidebar').classList.remove('predim');   // 開始後左欄恢復全亮
     ['flowWrap','nowCard','histHead'].forEach(id=>document.getElementById(id).style.display='block');
     // jump back to the top of the live progress view (after picking from a long outcome list,
     // the user may be scrolled far down — take them straight to the per-question progress)
@@ -1099,86 +1178,56 @@ function render(s){
   document.getElementById('progFill').style.width=(doneCount/ORDER.length*100)+'%';
   document.getElementById('progText').textContent=doneCount+' / '+ORDER.length;
 
-  // sidebar
-  ORDER.forEach(q=>{
-    const row=document.getElementById('row-'+q.id);if(!row)return;
-    const zh=q.zh||'';
-    if(ans[q.id]){
-      const a=ans[q.id].answer;const isNA=a==='NA';
-      row.className='qrow '+(isNA?'na':'done');
-      row.innerHTML=`<span class="dot"></span><span class="qid">${q.id}</span><span class="qlabel" title="${zh}">${zh}</span><span class="ans-chip">${a}</span>`;
-    }else if(s.current===q.id){
-      row.className='qrow current';
-      row.innerHTML=`<span class="spinner"></span><span class="qid">${q.id}</span><span class="qlabel" title="${zh}">${zh}</span>`;
-    }else{
-      row.className='qrow';row.innerHTML=`<span class="dot"></span><span class="qid">${q.id}</span><span class="qlabel" title="${zh}">${zh}</span>`;
-    }
-  });
+  // which domain the centre column is focused on, and its in-flight question (if any)
+  const fd=resolveFocus(s);
+  const fcur=(s.current&&typeof s.current==='object')?s.current[fd]:null;
 
-  // log: new current
-  if(s.current&&s.current!==lastCurrent){
-    lastCurrent=s.current;
-    // follow the current question in the left progress column (only nudges if off-screen)
-    const curRow=document.getElementById('row-'+s.current);
-    if(curRow)curRow.scrollIntoView({behavior:'smooth',block:'nearest'});
-    if(!loggedStart[s.current]){
-      loggedStart[s.current]=1;
-      const q=QMAP[s.current];
-      const f=kb?findQ(s.current):null;
-      const secs=f&&f.q.relevant_guidance_sections&&f.q.relevant_guidance_sections.length?' · 指引 '+f.q.relevant_guidance_sections.join(', '):'';
-      logLine('l-step',`Domain ${q.dom} · Q${s.current} — ${q.t}${secs}`);
-      startSubsteps(s.current);
-    }
-  }
-  // log: newly answered / skipped
-  Object.entries(ans).forEach(([qid,a])=>{
-    if(loggedDone[qid])return;loggedDone[qid]=1;clearInterval(subTimer);
-    if(a.answer==='NA'){
-      const cond=(QMAP[qid]&&QMAP[qid].cond)?` （條件：${QMAP[qid].cond} 未成立）`:'';
-      logLine('l-skip',`Q${qid} 略過 (NA)${cond}`);
-    }else{
-      logLine('l-ok',`Q${qid} = ${a.answer}　${(a.rationale||'').slice(0,70)}`);
-    }
-  });
+  // left rail: 5 parallel domain lanes + overall (highlights the resolved focus)
+  renderLanes(s);
 
-  // current card + guidance
-  if(s.current&&QMAP[s.current]){
-    const q=QMAP[s.current];
+  // current card + guidance (scoped to the focused domain)
+  if(fcur&&QMAP[fcur]){
+    const q=QMAP[fcur];
     document.getElementById('nowCard').classList.remove('done-mode');
     document.querySelector('#nowCard .lead').style.display='';
     document.getElementById('nowElab').style.display='';
     document.getElementById('nowDomain').textContent='Domain '+q.dom+'：'+q.domName;
     document.getElementById('nowQid').textContent=q.id;
     document.getElementById('nowQText').textContent=q.t;
-    if(q.id!==lastGuidanceQid){lastGuidanceQid=q.id;showGuidance(q.id);}
+    if(fcur!==lastGuidanceQid){lastGuidanceQid=fcur;showGuidance(fcur);}
     document.getElementById('thinking').style.display='flex';
     document.getElementById('thinkMsg').textContent='AI 讀取（快取的）RCT 並評估第 '+q.id+' 題…';
   }else if(s.status==='summarizing'){
     document.getElementById('thinking').style.display='none';
-    // fixed title — identical in summarizing + done states (summary progress lives in the summary area)
     document.getElementById('nowQText').textContent='✓ 評讀完成 — 風險偏誤結果（紅綠燈）';
     document.querySelector('#nowCard .lead').style.display='none';
-    document.getElementById('nowElab').style.display='none';
-    document.getElementById('nowElab').textContent='';
+    document.getElementById('nowElab').style.display='none';document.getElementById('nowElab').textContent='';
     document.getElementById('gToggle').style.display='none';
     document.getElementById('nowDomain').textContent='';document.getElementById('nowQid').textContent='';
     if(!flowManual)document.getElementById('flowWrap').style.display='none';
-    if(!loggedDone.__fin){loggedDone.__fin=1;logLine('l-ok','全部完成 — 演算法已計算判斷，產生中文摘要中');}
   }else if(s.status==='done'){
     document.getElementById('thinking').style.display='none';
-    // fixed title — same string as the summarizing state above (no status-driven change)
     document.getElementById('nowQText').textContent='✓ 評讀完成 — 風險偏誤結果（紅綠燈）';
-    document.querySelector('#nowCard .lead').style.display='none';   // hide the stray " · " separator
-    document.getElementById('nowElab').style.display='none';         // hide the empty grey guidance bar
-    document.getElementById('nowElab').textContent='';
+    document.querySelector('#nowCard .lead').style.display='none';
+    document.getElementById('nowElab').style.display='none';document.getElementById('nowElab').textContent='';
     document.getElementById('gToggle').style.display='none';document.getElementById('gFull').classList.remove('open');
-    document.getElementById('nowCard').classList.add('done-mode');   // centre + compact
-    // completion view: prioritise traffic lights + download; summary goes below; flowchart tucked away
+    document.getElementById('nowCard').classList.add('done-mode');
     if(!flowManual)document.getElementById('flowWrap').style.display='none';
   }else if(s.status==='error'){
     document.getElementById('thinking').style.display='none';
     document.getElementById('nowQText').textContent='⚠ 發生錯誤：'+(s.error||'未知');
-    if(!loggedDone.__err){loggedDone.__err=1;logLine('l-err',(s.error||'未知錯誤'));}
+  }else{
+    // a run is in progress but the focused domain isn't actively asking (it finished, or is waiting)
+    document.getElementById('thinking').style.display='none';
+    document.getElementById('nowCard').classList.remove('done-mode');
+    document.querySelector('#nowCard .lead').style.display='none';
+    document.getElementById('nowElab').style.display='none';document.getElementById('nowElab').textContent='';
+    document.getElementById('gToggle').style.display='none';
+    document.getElementById('nowDomain').textContent='';document.getElementById('nowQid').textContent='';
+    const fdom=DOMAINS_ACTIVE.find(d=>d.id===fd)||{};const fv=(s.domains||{})[fd];
+    document.getElementById('nowQText').textContent=fv
+      ?`Domain ${fd}：${fdom.name||''} — 本領域評讀完成（判斷：${fv}）`
+      :`Domain ${fd}：${fdom.name||''} — 等待開始…`;
   }
 
   // chinese summary panel
@@ -1192,30 +1241,20 @@ function render(s){
       .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');  // render **bold**; newlines kept via white-space:pre-wrap
   }
 
-  // flowchart: auto-follow the current domain (with a ~1s dwell when a domain finishes,
-  // so the just-completed domain is visible before jumping to the next one)
-  const dom=s.current?QMAP[s.current].dom:((s.status==='done'||s.status==='summarizing')?5:1);
-  if(!autoFollow){
-    drawFlow(flowTab||dom,ans,s.current);
-  }else if(!flowDwell){
-    if(flowTab!=null&&dom!==flowTab){
-      flowDwell=true;
-      drawFlow(flowTab,ans,null,true);          // dwell: domain done, its judgement box lit up
-      const next=dom;
-      setTimeout(()=>{flowDwell=false;drawFlow(next,(curState.answers||{}),curState.current);},2500);
-    }else{
-      drawFlow(dom,ans,s.current);
-    }
-  }
+  // flowchart: the focused domain's path, with its in-flight question highlighted
+  drawFlow(fd,ans,fcur);
 
-  // history — newest-first while running; ascending by question id once done (+ expanded)
+  // history — completed questions for the FOCUSED domain (newest-first while running;
+  // ascending by question id once done + expanded). Each item can expand to show the
+  // exact guidance text that was sent to the AI for that question (transparency).
   const done=s.status==='done';
-  document.getElementById('histTitle').textContent=done?'已完成題目（依題號 1.1→）':'已完成題目（新→舊）';
-  const idx=q=>ORDER.findIndex(o=>o.id===q);
-  const items=Object.entries(ans).map(([qid,a])=>({qid,...a}))
-    .sort((x,y)=>done?(idx(x.qid)-idx(y.qid)):((y.ts||0)-(x.ts||0)));
+  const fdom2=DOMAINS_ACTIVE.find(d=>d.id===fd)||{qs:[]};
+  const fqids=fdom2.qs.map(q=>q.id);const fqset=new Set(fqids);
+  document.getElementById('histTitle').textContent=`Domain ${fd} 已完成題目`+(done?'（依題號）':'（新→舊）');
+  const items=Object.entries(ans).filter(([qid])=>fqset.has(qid)).map(([qid,a])=>({qid,...a}))
+    .sort((x,y)=>done?(fqids.indexOf(x.qid)-fqids.indexOf(y.qid)):((y.ts||0)-(x.ts||0)));
   const h=document.getElementById('history');
-  const sig=items.map(i=>i.qid+i.answer).join(',')+'|'+s.status;
+  const sig=fd+'|'+items.map(i=>i.qid+i.answer).join(',')+'|'+s.status;
   if(sig!==render._sig){
     render._sig=sig;h.innerHTML='';
     document.getElementById('expandToggle').textContent=done?'收合全部':'展開全部';
@@ -1234,18 +1273,12 @@ function render(s){
           <div class="qlbl">理由（rationale）</div>
           <div class="rat">${it.rationale||''}</div>
           ${q&&q.badge?`<div class="rat" style="margin-top:6px;color:var(--some)">⚠ ${q.badge}</div>`:''}
+          ${isNA?'':`<div class="gtoggle" onclick="const g=this.nextElementSibling;g.classList.toggle('open');this.textContent=(g.classList.contains('open')?'▾ 收合指引（丟給 AI 的提示）':'▸ 查看本題完整指引（丟給 AI 的提示）')">▸ 查看本題完整指引（丟給 AI 的提示）</div><div class="gfull">${guidanceInner(it.qid)}</div>`}
         </div>`;
       h.appendChild(div);
     });
   }
 
-  // judgements
-  Object.entries(s.domains||{}).forEach(([d,v])=>{
-    const p=document.getElementById('jp-'+d);if(!p)return;
-    p.className='pill '+pillClass(v);p.textContent=v;
-  });
-  if(s.overall){const ov=document.getElementById('overallVal');ov.textContent=s.overall;ov.className='big pill '+pillClass(s.overall);}
-  renderTraffic(s.domains||{},s.overall,'railTraffic');
   // download only after the Chinese summary is ready (status 'done'), so the exported report always includes it
   document.getElementById('doneActions').style.display=(s.status==='done')?'flex':'none';
   const dt=document.getElementById('doneTraffic');
@@ -1264,9 +1297,8 @@ function renderUsage(u,model){
   // slim rail: show ONLY the total price up front; the detailed token breakdown
   // (the #usageBox) stays hidden behind the "?" toggle.
   const cl=document.getElementById('costLine');
-  document.getElementById('costVal').innerHTML=`估計成本 <b>NT$${ntd.toFixed(2)}</b>`+
-    `<span style="color:var(--faint)">（含掃描${tusd?'＋翻譯':''}；按「?」看明細）</span>`;
-  cl.style.display='flex';
+  document.getElementById('costVal').innerHTML=`估計成本 <b>NT$${ntd.toFixed(2)}</b>`;
+  cl.style.display='inline-flex';
   const box=document.getElementById('usageBox');   // detailed breakdown (visibility owned by the "?" toggle)
   box.innerHTML=
     (scanUsage
@@ -1499,9 +1531,10 @@ function clearAll(){
   {const r=document.querySelector('input[name="dlLangChoice"][value="en"]');if(r)r.checked=true;}
   setDlBusy(false);clearDlStatus();
   document.getElementById('dlMenu').classList.remove('open');
+  focusDomain=1;render._sig=null;
   buildModel(document.getElementById('fEffect').value||'assignment');rebuildAll();
   document.getElementById('history').innerHTML='';
-  document.getElementById('overallVal').textContent='—';document.getElementById('overallVal').className='big';
+  {const ov=document.getElementById('overallVal');if(ov){ov.textContent='—';ov.className='oval';}}
   document.getElementById('progFill').style.width='0';document.getElementById('progText').textContent='0 / 22';
   document.getElementById('modelBadge').textContent='⚙︎ —';
   {const tt=document.getElementById('trialTitle');tt.textContent='RoB2 Rocket';tt.title='';}document.getElementById('trialMeta').textContent='';
@@ -1511,11 +1544,10 @@ function clearAll(){
   document.getElementById('nowElab').style.display='';
   ['flowWrap','nowCard','histHead','summaryCard','doneActions'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('usageBox').style.display='none';
-  document.getElementById('costLine').style.display='flex';
-  document.getElementById('costVal').innerHTML='估計成本 <b>NT$0.00</b><span style="color:var(--faint)">（評讀開始後即時更新）</span>';
+  document.getElementById('costLine').style.display='none';   // header cost hidden until a run starts
+  document.getElementById('costVal').innerHTML='估計成本 <b>NT$0.00</b>';
   document.getElementById('costToggle').classList.remove('on');
-  document.getElementById('sidebar').classList.add('predim');   // 回到開始前：左右淡化
-  document.getElementById('rail').classList.add('predim');
+  document.getElementById('sidebar').classList.add('predim');   // 回到開始前：左欄淡化
   document.getElementById('scanResult').style.display='none';
   document.getElementById('docWarn').style.display='none';
   document.getElementById('outcomeList').innerHTML='';
