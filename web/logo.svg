@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56" role="img" aria-label="實證火箭">
+  <rect width="56" height="56" rx="15" fill="#0072B2"/>
+  <g transform="rotate(38 28 28)">
+    <path d="M25.8 40 C26 43.5 27 47 28 50 C29 47 30 43.5 30.2 40 Z" fill="#fff" opacity=".6"/>
+    <path d="M19 27 L13 39.5 L19 35.5 Z" fill="#fff"/>
+    <path d="M37 27 L43 39.5 L37 35.5 Z" fill="#fff"/>
+    <path d="M25 33 L31 33 L32.3 39.5 L23.7 39.5 Z" fill="#fff"/>
+    <path d="M28 9 C33 14.5 35 21 35 27.5 L34.5 33 L21.5 33 L21 27.5 C21 21 23 14.5 28 9 Z" fill="#fff"/>
+    <circle cx="28" cy="21" r="3.3" fill="#0072B2"/>
+  </g>
+</svg>
