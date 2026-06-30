@@ -425,6 +425,13 @@
       <label>試驗標題（掃描後自動帶入，可修改）</label>
       <input type="text" id="fTitle" placeholder="掃描 outcome 後會自動填入；也可手動輸入">
 
+      <label>試驗設計（Design）</label>
+      <select id="fDesign">
+        <option value="parallel">平行組 RCT（parallel，預設）</option>
+        <option value="crossover">交叉 RCT（crossover，AB/BA）</option>
+      </select>
+      <div class="hint">交叉設計會多一個 Domain S（期間與殘留效應），且 Domain 5 多一題 5.4。一般 RCT 選預設平行組。</div>
+
       <label>Effect of interest（效應類型）</label>
       <select id="fEffect">
         <option value="assignment">Assignment to intervention（ITT，預設）</option>
@@ -575,10 +582,34 @@ const ADHERING_D2=[
    {id:"2.5",zh:"是否有影響結局的非依從？",t:"Non-adherence to the regimen that could affect outcomes?"},
    {id:"2.6",zh:"是否用了適當的 per-protocol 分析？",t:"Appropriate analysis for the per-protocol effect?",cond:"2.3=N/PN/NI 或 2.4/2.5=Y/PY/NI"},
 ];
-let EFFECT='assignment',DOMAINS_ACTIVE=DOMAINS,ORDER=[],QMAP={};
-function buildModel(effect){
+// crossover (AB/BA) domain set: adds Domain S, reworded 1.3, and Domain 5's extra 5.4.
+// Domains 2/3/4 are identical to parallel ('as for parallel group trials'), so reuse them.
+const DOMAIN_S={id:"S",name:"期間與殘留效應",qs:[
+   {id:"S.1",zh:"兩個序列（AB／BA）的人數是否相當？",t:"Were similar numbers randomized to the two sequences?"},
+   {id:"S.2",zh:"分析是否適當納入了期間效應？",t:"Did the analysis appropriately account for period effects?",cond:"S.1 = N/PN/NI"},
+   {id:"S.3",zh:"第二期測量前，前一期的殘留效應是否已消退？",t:"Had carryover effects washed out before the period-2 measurement?"},
+]};
+const DOMAINS_CROSSOVER=[
+ {id:1,name:"隨機化過程",qs:[
+   {id:"1.1",zh:"分配序列是否隨機產生？",t:"Was the allocation sequence random?"},
+   {id:"1.2",zh:"分配是否隱蔽到分組為止？",t:"Was the allocation sequence concealed until enrolment/assignment?"},
+   {id:"1.3",zh:"第一期開始時的基線差異是否暗示隨機化有問題？",t:"Did baseline differences at the start of period 1 suggest a randomization problem?"},
+ ]},
+ DOMAIN_S,
+ DOMAINS.find(d=>d.id===2),
+ DOMAINS.find(d=>d.id===3),
+ DOMAINS.find(d=>d.id===4),
+ {id:5,name:"選擇性報告",qs:[
+   ...DOMAINS.find(d=>d.id===5).qs,
+   {id:"5.4",zh:"是否因偵測到殘留效應而只報告第一期結果？",t:"Was the reported result (e.g. first period only) selected because a carryover effect was detected?",badge:"PDF-only 限制"},
+ ]},
+];
+let EFFECT='assignment',DESIGN='parallel',DOMAINS_ACTIVE=DOMAINS,ORDER=[],QMAP={};
+function buildModel(effect,design){
   EFFECT=effect==='adhering'?'adhering':'assignment';
-  DOMAINS_ACTIVE=DOMAINS.map(d=>{
+  if(design!==undefined)DESIGN=design==='crossover'?'crossover':'parallel';
+  const base=DESIGN==='crossover'?DOMAINS_CROSSOVER:DOMAINS;
+  DOMAINS_ACTIVE=base.map(d=>{
     if(d.id===2&&EFFECT==='adhering')return {id:2,name:"偏離預定介入",qs:ADHERING_D2};
     return d;
   });
@@ -684,8 +715,23 @@ const GRAPH={
      ['q25','q26','有偏離疑慮',a=>did(a,'q26')],
      ['q25','J2','無疑慮',a=>did(a,'q25')&&!did(a,'q26')],
      ['q26','J2','',a=>did(a,'q26')]]},
+ // crossover Domain S (period & carryover, Figure 2). Decision logic enters at S.3.
+ S:{nodes:[['qS1','S.1 兩序列人數是否相當？'],['qS2','S.2 分析是否納入期間效應？'],['qS3','S.3 第二期前殘留是否消退？'],['JS','Domain S 判斷',1]],
+    edges:[
+     ['qS3','JS','N/PN 或 NI',a=>no(a,'qS3')||ni(a,'qS3')],
+     ['qS3','qS1','Y/PY',a=>yes(a,'qS3')],
+     ['qS1','JS','Y/PY',a=>yes(a,'qS1')&&!did(a,'qS2')],
+     ['qS1','qS2','N/PN/NI',a=>no(a,'qS1')||ni(a,'qS1')],
+     ['qS2','JS','',a=>did(a,'qS2')]]},
+ // crossover Domain 5 (selection of reported result, with extra 5.4, Figure 7).
+ '5x':{nodes:[['q51','5.1 是否依預定計畫分析？'],['q52','5.2 是否從多個測量中挑選？'],['q53','5.3 是否從多個分析中挑選？'],['q54','5.4 是否因殘留而只報第一期？'],['J5','Domain 5 判斷',1]],
+    edges:[['q51','q52','',a=>did(a,'q51')],['q52','q53','',a=>did(a,'q52')],['q53','q54','',a=>did(a,'q53')],['q54','J5','',a=>did(a,'q54')]]},
 };
-function graphFor(domId){return (domId===2&&EFFECT==='adhering')?GRAPH.adh2:GRAPH[domId];}
+function graphFor(domId){
+  if(domId===2&&EFFECT==='adhering')return GRAPH.adh2;
+  if(domId===5&&DESIGN==='crossover')return GRAPH['5x'];
+  return GRAPH[domId];
+}
 function flowDef(domId,answers,current,judging){
   const g=graphFor(domId);
   const _dr=(curState.domains||{})[domId];   // verdict available once domain is judged
@@ -1121,12 +1167,14 @@ document.getElementById('startBtn').onclick=async()=>{
   const outcome=document.getElementById('fOutcome').value.trim();
   if(!outcome){err.textContent='請先指定要評讀的結局（掃描挑選或手動輸入）。';return;}
   const effect=document.getElementById('fEffect').value;
+  const design=document.getElementById('fDesign').value;
   const title=document.getElementById('fTitle').value||f.name;
-  buildModel(effect);rebuildAll();
+  try{await loadKB(design);}catch(err){err&&console.warn('KB load failed',err);}
+  buildModel(effect,design);rebuildAll();
   loggedStart={};loggedDone={};lastCurrent=null;lastDomainDrawn=null;autoFollow=true;lastGuidanceQid=null;flowManual=false;flowDwell=false;focusDomain=1;render._sig=null;
   document.getElementById('flowToggleBtn').textContent='▸ 顯示流程圖';
   // trial metadata lives UI-side (the engine state carries `result` + `effect`, not a trial object)
-  trialMeta={title,outcome,effect};
+  trialMeta={title,outcome,effect,design};
   document.getElementById('startBtn').disabled=true;
   try{
     const pdfBase64=await pdfToBase64(f);
@@ -1145,6 +1193,7 @@ document.getElementById('startBtn').onclick=async()=>{
       pdfBase64,
       resultOutcome:outcome,
       effect,
+      design,
       provider:currentProvider,
       model:currentModel,
       onUpdate:(s)=>render(s),
@@ -1618,9 +1667,26 @@ document.getElementById('zoomOut').onclick=()=>{uiZoom-=ZOOM_STEP;applyZoom();};
 document.getElementById('zoomIn').onclick=()=>{uiZoom+=ZOOM_STEP;applyZoom();};
 applyZoom();
 
+/* ---------- knowledge base loading (parallel vs crossover) ---------- */
+const KB_CACHE={};
+async function loadKB(design){
+  const d=design==='crossover'?'crossover':'parallel';
+  const file=d==='crossover'?"./rob2_knowledge_crossover.json":"./rob2_knowledge.json";
+  if(!KB_CACHE[d])KB_CACHE[d]=await fetch(file).then(r=>r.json());
+  kb=KB_CACHE[d];
+  return kb;
+}
+// switching design swaps the KB (so guidance text resolves S.x / 5.4) and rebuilds the model
+document.getElementById('fDesign').onchange=async e=>{
+  const d=e.target.value;
+  try{await loadKB(d);}catch(err){/* keep previous kb on fetch failure */}
+  buildModel(document.getElementById('fEffect').value||'assignment',d);
+  rebuildAll();drawFlow(1,{},null);
+};
+
 /* ---------- boot ---------- */
 (async()=>{
-  try{kb=await fetch("./rob2_knowledge.json").then(r=>r.json());}catch(e){kb=null;}
+  try{await loadKB('parallel');}catch(e){kb=null;}
   refreshKeyState();   // gate scan/start (key was prefilled by initKey() above)
   drawFlow(1,{},null);
 })();

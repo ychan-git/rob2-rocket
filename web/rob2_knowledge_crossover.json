@@ -1,0 +1,798 @@
+{
+  "_attribution": {
+    "summary": "Signalling questions, response options, domain structure (including the crossover-specific Domain S and question 5.4) and decision algorithms in this file are reproduced/transcribed from the OFFICIAL Cochrane RoB 2 crossover variant.",
+    "primary_sources": [
+      "Higgins JPT, Li T, Sterne J (eds), on behalf of the RoB 2 working group on crossover trials. Revised Cochrane risk of bias tool for randomized trials (RoB 2): Additional considerations for crossover trials. Preliminary tool version, 18 March 2021.",
+      "Signalling questions transcribed VERBATIM from the official 'Template for completion' (Word, version 18 March 2021) and the official 'Cribsheet'.",
+      "Domain-level decision algorithms (Domain S Figure 2; Domain 5 Figure 7) transcribed from the algorithm flowchart figures in the official guidance PDF. Domains 2, 3, 4 algorithms and routing are 'as for parallel group trials' (stated verbatim in the guidance), so they reuse the main RoB 2 tables. Domain 1 differs only in the wording of 1.3 ('at the start of the first period'); same algorithm as parallel."
+    ],
+    "source_urls": [
+      "https://www.riskofbias.info/welcome/rob-2-0-tool/rob-2-for-crossover-trials",
+      "Full guidance PDF: https://drive.google.com/file/d/11LFgCuDpWk5-BvBNbHtNzbJv5-qVpTWb/view",
+      "Cribsheet PDF: https://drive.google.com/file/d/1RrwJ-d-gYYckA-3HWaPGBojdXLaXBbh9/view",
+      "Assessment template (Word): https://drive.google.com/file/d/1IYoJgtAJ_yndr7Hq8LzH4IBRc72HUofJ/view",
+      "Excel tool: https://drive.google.com/uc?export=download&id=1M5qZTNta083ObsM6UChryfe3HGFEzGqL"
+    ],
+    "license": "RoB 2 crossover materials are licensed CC BY-NC-ND 4.0 (https://creativecommons.org/licenses/by-nc-nd/4.0/). The main RoB 2 guidance reused for Domains 2-5 is from Sterne JAC, Savovic J, Page MJ, et al. RoB 2: a revised tool for assessing risk of bias in randomised trials. BMJ 2019;366:l4898. This is an independent, non-commercial tool, not endorsed by or affiliated with the RoB 2 development group or Cochrane.",
+    "note": "Domain detailed_guidance entries for shared domains (2,3,4 and the bulk of 1 and 5) are NOT duplicated here verbatim; refer to knowledge_parallel.json for that text since the guidance states they are unchanged. Crossover-specific guidance text (Domain 1 baseline note, Domain S period/carryover background, the 5.4 elaboration, and analysis-issues background) IS included verbatim below."
+  },
+  "tool": "RoB 2 for crossover trials (Revised Cochrane risk-of-bias tool, crossover variant)",
+  "version": "Preliminary tool version, 18 March 2021",
+  "design": "individually randomized cross-over (AB/BA) trial",
+  "effect_of_interest": "effect of assignment to intervention (intention-to-treat effect) OR effect of adhering to intervention (per-protocol effect)",
+  "crossover_background": "Crossover trials allocate each participant to a SEQUENCE of interventions (e.g. AB or BA in a simple two-intervention, two-period AB/BA design). The allocation is not to a particular intervention but to a particular sequence. This variant addresses two-intervention, two-period (AB/BA) crossover trials. Analysis should take advantage of the within-participant (paired) design. The tool can be used when (a) both periods were analysed appropriately (paired), (b) both periods were analysed inappropriately (as a parallel trial with double the sample), or (c) only first-period data were analysed (effectively a parallel trial). When only first-period data contribute to the result, examine only the first period when answering the signalling questions.",
+  "response_options": {
+    "Y": "Yes (firm evidence available)",
+    "PY": "Probably yes (a judgement has been made)",
+    "PN": "Probably no (a judgement has been made)",
+    "N": "No (firm evidence available)",
+    "NI": "No information",
+    "NA": "Not applicable (previous answer means this question is not required)"
+  },
+  "response_grouping_for_algorithms": {
+    "YPY": [
+      "Y",
+      "PY"
+    ],
+    "NPN": [
+      "N",
+      "PN"
+    ],
+    "NI": [
+      "NI"
+    ],
+    "NA": [
+      "NA"
+    ]
+  },
+  "judgement_levels": [
+    "Low",
+    "Some concerns",
+    "High"
+  ],
+  "global_instructions": [
+    "Answer each signalling question independently: the answer to one question must not affect answers to other questions, except by determining which conditional questions are reached.",
+    "For each answer, provide a direct quotation from the trial report as supporting evidence whenever possible. If no quote exists, say so explicitly.",
+    "'Risk of bias' means 'risk of MATERIAL bias' - only raise concerns about issues likely to affect the ability to draw reliable conclusions.",
+    "Use 'No information' only when (i) insufficient details are reported to permit 'Probably yes'/'Probably no' AND (ii) it would be unreasonable to answer 'Probably yes'/'Probably no' given the circumstances of the trial.",
+    "'Yes'/'Probably yes' have the same implication for bias; 'No'/'Probably no' have the same implication.",
+    "If only data from the first period contribute to the result being assessed, examine only the first period of the trial when answering the signalling questions.",
+    "Examination of baseline characteristics for problems with randomization should focus on the groups at the start of the FIRST period only."
+  ],
+  "domains": [
+    {
+      "id": 1,
+      "name": "Bias arising from the randomization process",
+      "questions": [
+        {
+          "id": "1.1",
+          "text": "Was the allocation sequence random?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials. Note that in a crossover trial the allocation is to a sequence of interventions (e.g. AB or BA), not to a single intervention. Answer 'Yes' if a random component was used in sequence generation (computer-generated random numbers, random number table, coin tossing, shuffling, dice, lots; minimization with a random element counts as random). Answer 'No' if no random element was used or the sequence is predictable (alternation, dates, record numbers, clinician/participant choice, availability). Answer 'No information' if the only information is a bare statement that the study is randomized; a judgement of 'Probably yes'/'Probably no' may sometimes be reasonable given the trial context.",
+          "relevant_guidance_sections": [
+            "main 4.3.1",
+            "main 4.3.1.1"
+          ]
+        },
+        {
+          "id": "1.2",
+          "text": "Was the allocation sequence concealed until participants were enrolled and assigned to interventions?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials. Answer 'Yes' for remote/central allocation independent of enrolment personnel, or appropriately used sequentially numbered opaque sealed envelopes / identical sequentially numbered drug containers. Answer 'No' if there is reason to suspect the enrolling investigator or participant could foresee the forthcoming allocation.",
+          "relevant_guidance_sections": [
+            "main 4.3.2"
+          ]
+        },
+        {
+          "id": "1.3",
+          "text": "Did baseline differences between intervention groups at the start of the first period suggest a problem with the randomization process?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials, but examination of baseline characteristics should focus on the intervention (sequence) groups at the start of the FIRST period only. Differences compatible with chance do not lead to a risk of bias. Answer 'Yes' for: substantial differences between sequence-group sizes vs the intended allocation ratio; a substantial excess of statistically significant baseline differences beyond chance; imbalance in key prognostic factors or baseline outcome measures unlikely to be due to chance and large enough to bias the estimate; or excessive similarity not compatible with chance. Answer 'No information' if no useful baseline information is available. The answer must not influence answers to 1.1 or 1.2.",
+          "relevant_guidance_sections": [
+            "xover 2 (Domain 1)",
+            "main 4.3.3",
+            "main 4.3.3.1"
+          ]
+        }
+      ],
+      "algorithm": [
+        {
+          "1.1": "YPY|NI",
+          "1.2": "YPY",
+          "1.3": "NPN|NI",
+          "judgement": "Low"
+        },
+        {
+          "1.1": "YPY",
+          "1.2": "YPY",
+          "1.3": "YPY",
+          "judgement": "Some concerns"
+        },
+        {
+          "1.1": "NPN|NI",
+          "1.2": "YPY",
+          "1.3": "YPY",
+          "judgement": "Some concerns"
+        },
+        {
+          "1.1": "any",
+          "1.2": "NI",
+          "1.3": "NPN|NI",
+          "judgement": "Some concerns"
+        },
+        {
+          "1.1": "any",
+          "1.2": "NI",
+          "1.3": "YPY",
+          "judgement": "High"
+        },
+        {
+          "1.1": "any",
+          "1.2": "NPN",
+          "1.3": "any",
+          "judgement": "High"
+        }
+      ],
+      "algorithm_note": "Identical to the parallel-group Domain 1 algorithm (main tool Tables 3/4). The only crossover change is the wording of 1.3 (baseline at start of first period).",
+      "detailed_guidance": [
+        {
+          "section": "xover 2",
+          "title": "Domain 1: Bias arising from the randomization process (crossover)",
+          "text": "See also the section about bias arising from the randomization process in the main guidance document. Bias arising from the randomization process operates in the same way as for parallel group trials. Note however that the allocation is not to a particular intervention, but to a particular sequence of interventions (either A then B, or B then A, in a simple AB/BA design). Examination of baseline characteristics for evidence of a problem with the randomization process should focus on the intervention groups at the start of the first period only."
+        }
+      ]
+    },
+    {
+      "id": "S",
+      "name": "Bias arising from period and carryover effects",
+      "questions": [
+        {
+          "id": "S.1",
+          "text": "Was the number of participants allocated to each of the two sequences equal or nearly equal?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "If the allocation ratio is 1:1, then any general trends in outcomes over time (that is, period effects) will cancel. Thus if the answer to this question is yes or probably yes, then the risk of bias is low. If the answer to this question is no or probably no, a general trend in outcomes over time may lead to bias. For example, if there is a general deterioration in outcomes, imbalance in numbers will lead to bias against the intervention that is 'over-represented' in the second period.",
+          "relevant_guidance_sections": [
+            "xover 3.1"
+          ]
+        },
+        {
+          "id": "S.2",
+          "text": "Were period effects accounted for in the analysis?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if N/PN/NI to S.1; otherwise NA",
+          "elaboration": "If period effects are accounted for in the analysis (by inclusion of intervention-by-time period interactions), then an underlying trend in the outcome over time should not cause a problem and the risk of bias would be low. If period effects are present but not included in the analysis, then there is a risk of bias. Answer 'Y' if only data from the first period contribute to the result being assessed for risk of bias.",
+          "relevant_guidance_sections": [
+            "xover 3.1"
+          ]
+        },
+        {
+          "id": "S.3",
+          "text": "Was there sufficient time for any carryover effects to have disappeared before outcome assessment in the second period?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "Carryover is a key concern in crossover trials. An understanding of the likelihood of carryover requires content knowledge, and information to inform this judgement may not be available from the report of the crossover trial. Carryover effects can sometimes be detected by comparing imbalance in participant variables at the start of the second period with imbalance in variables at the start of the first period. If there is a greater imbalance at the start of the second period, it may be due to carryover effects. It is important that carryover effects do not affect outcomes measured in the second period. A long washout period can be used to ensure participants start the second period in a state that is unaffected by what they received in the first period. However, a washout period is not essential. The important consideration is whether sufficient time passes before outcome measurement in the second period for any carryover effects to have disappeared. (This might sometimes be viewed as the participants having reached 'steady state'.) If a washout period is absent or is too short for carryover effects to have disappeared, then measurements taken in the second period may be affected by carryover. Answer 'Y' if only data from the first period contribute to the result being assessed for risk of bias.",
+          "relevant_guidance_sections": [
+            "xover 3.2"
+          ]
+        }
+      ],
+      "algorithm": [
+        {
+          "S.3": "NPN",
+          "S.1": "any",
+          "S.2": "any",
+          "judgement": "High"
+        },
+        {
+          "S.3": "NI",
+          "S.1": "any",
+          "S.2": "any",
+          "judgement": "Some concerns"
+        },
+        {
+          "S.3": "YPY",
+          "S.1": "YPY",
+          "S.2": "any",
+          "judgement": "Low"
+        },
+        {
+          "S.3": "YPY",
+          "S.1": "NPN|NI",
+          "S.2": "YPY",
+          "judgement": "Low"
+        },
+        {
+          "S.3": "YPY",
+          "S.1": "NPN|NI",
+          "S.2": "NPN|NI",
+          "judgement": "Some concerns"
+        }
+      ],
+      "algorithm_note": "Transcribed from Figure 2 of the official crossover guidance. Routing starts at S.3 (carryover): S.3=N/PN -> High; S.3=NI -> Some concerns; S.3=Y/PY -> evaluate period effects: S.1=Y/PY -> Low; else S.2=Y/PY -> Low, S.2=N/PN/NI -> Some concerns. Conditional routing: S.2 is only asked (else NA) when S.1 is N/PN/NI.",
+      "detailed_guidance": [
+        {
+          "section": "xover 3",
+          "title": "Domain S: Bias arising from period and carryover effects",
+          "text": "This domain addresses two issues that are specific to crossover trials: period effects and carryover."
+        },
+        {
+          "section": "xover 3.1",
+          "title": "Period effects",
+          "text": "Period effects are systematic differences between responses in the second compared with the first period that are not due to the interventions being compared. They may occur, for example, when the condition changes systematically over time, or if there are changes over time in background factors such as underlying healthcare strategies. Period effects can sometimes be detected by comparing information on participant characteristics at the start of the second period with corresponding characteristics at the start of the first period. Appropriate design and analysis strategies can overcome the potential impact of period effects. If the allocation ratio is 1:1, then any general trends in outcomes over time will cancel each other out across the two sequences when all participants are followed and analysed together. If the allocation ratio is not 1:1, then a general trend in outcomes over time may lead to bias. For example, if there is a general deterioration in outcomes, imbalance in numbers could lead to bias against the intervention that is 'over-represented' in the second period. Unequal numbers of participants across the two orderings of treatment can occur by chance. Given sufficient crossover trials in a meta-analysis, these imbalances should even out. Potential bias arising from period effects can be overcome by using a statistical analysis that includes period effects, which are terms in the model that allow the systematic difference between responses during the two periods to be estimated and accounted for, even when the allocation ratio is not 1:1."
+        },
+        {
+          "section": "xover 3.2",
+          "title": "Carryover",
+          "text": "The second problem particularly associated with crossover trials is that of carryover: the situation in which the effects of an intervention given in the first period persist into the second period, thus interfering with the effects of the second intervention. Carryover effects may arise because the intervention itself persists (such as a drug with a long elimination half-life), or because the effects of the intervention persist. An extreme example of carryover is when the outcome of interest is irreversible, for example mortality, or pregnancy in a subfertility study. In this case, a crossover study is generally inappropriate. A carryover effect means that the observed difference between the interventions for each individual depends upon the order in which they were received; hence the estimated overall treatment effect will be affected (usually biased towards the null). Many crossover trials include a period between interventions known as a washout period as a means of reducing carryover. Including a term for period by treatment interaction in the analysis model allows carryover to be identified (if there are sufficient data points), but in an AB/BA design does not eliminate the bias introduced by the carryover. Whether carryover effect is of concern is related to when outcomes are measured. A washout period is not essential; the important consideration is whether sufficient time passes before outcome measurement in the second period for any carryover effects to have disappeared."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Bias due to deviations from intended interventions (effect of assignment to intervention)",
+      "questions": [
+        {
+          "id": "2.1",
+          "text": "Were participants aware of their assigned intervention during each period of the trial?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials. If only data from the first period contribute to the result being assessed for risk of bias, examine only the first period of the trial in answering this question. If participants are aware of their assigned intervention it is more likely that health-related behaviours will differ. If participants experienced side effects/toxicities known to be specific to one intervention, answer 'Yes'/'Probably yes'.",
+          "relevant_guidance_sections": [
+            "main 5.1.3"
+          ]
+        },
+        {
+          "id": "2.2",
+          "text": "Were carers and people delivering the interventions aware of participants' assigned intervention during each period of the trial?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials. If only data from the first period contribute to the result, examine only the first period. If carers or deliverers are aware of the assigned intervention then its implementation, or administration of non-protocol interventions, may differ. If allocation was not concealed, carers/deliverers were likely aware.",
+          "relevant_guidance_sections": [
+            "main 5.1.3"
+          ]
+        },
+        {
+          "id": "2.3",
+          "text": "Were there deviations from the intended intervention that arose because of the trial context?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if Y/PY/NI to 2.1 or 2.2; otherwise NA",
+          "elaboration": "As for parallel group trials. Answer 'Yes'/'Probably yes' only if there is evidence, or strong reason to believe, that the trial context led to failure to implement the protocol interventions or to implementation of interventions not allowed by the protocol. Answer 'No'/'Probably no' for changes consistent with the protocol, or changes (e.g. non-adherence) consistent with what could occur outside the trial context.",
+          "relevant_guidance_sections": [
+            "main 5.1.1"
+          ]
+        },
+        {
+          "id": "2.4",
+          "text": "Were these deviations likely to have affected the outcome?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if Y/PY to 2.3; otherwise NA",
+          "elaboration": "As for parallel group trials. Deviations arising because of the trial context will impact the estimate if they affect the outcome, but not otherwise.",
+          "relevant_guidance_sections": []
+        },
+        {
+          "id": "2.5",
+          "text": "Were these deviations from intended intervention balanced between groups?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if Y/PY/NI to 2.4; otherwise NA",
+          "elaboration": "Mostly as for parallel group trials. If a paired analysis is used, the impact of deviations from the intended interventions may cancel out if the deviations are balanced between the two interventions. If only data from the first period contribute to the result, examine only the first period. In a crossover trial, bias due to deviations from intended intervention only occurs when the probability of deviations differs by intervention (balance can be achieved within each sequence or between periods as a whole).",
+          "relevant_guidance_sections": [
+            "xover 4"
+          ]
+        },
+        {
+          "id": "2.6",
+          "text": "Was an appropriate analysis used to estimate the effect of assignment to intervention?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials. ITT and modified-ITT (excluding participants with missing outcome data) analyses are appropriate. Naive per-protocol and as-treated analyses are inappropriate, as are analyses excluding eligible participants post-randomization.",
+          "relevant_guidance_sections": [
+            "main 5.3.1"
+          ]
+        },
+        {
+          "id": "2.7",
+          "text": "Was there potential for a substantial impact (on the result) of the failure to analyse participants in the group to which they were randomized?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if N/PN/NI to 2.6; otherwise NA",
+          "elaboration": "As for parallel group trials. Addresses whether the number analysed in the wrong group, or excluded, was sufficient to substantially impact the result. No precise rule: substantial impact is possible even with <5% if the outcome is rare or exclusions relate to prognostic factors.",
+          "relevant_guidance_sections": [
+            "main 5.3.1"
+          ]
+        }
+      ],
+      "algorithm_note": "Domain 2 algorithm is 'as for parallel group trials' (stated verbatim in the crossover guidance). algorithm_crossover.py reuses the parallel Domain 2 tables (Tables 5/6 for assignment, 7/8 for adhering) and the parallel conditional routing. The only crossover-specific phrasing is in the elaborations (per-period wording; paired-analysis cancellation). See knowledge_parallel.json domain 2 for the full algorithm tables and detailed_guidance.",
+      "detailed_guidance": [
+        {
+          "section": "xover 4",
+          "title": "Domain 2: Bias due to deviations from intended intervention (crossover)",
+          "text": "The principle of analysing within-participant difference in crossover trials has implications when considering risk of bias due to deviations from intended interventions. Similar to a parallel group trial, the impact of deviations may cancel out when the deviations are balanced between interventions. This balance may be achieved within each of the sequences, or between periods as a whole (akin to a period effect). To summarize, in a crossover trial, bias due to deviations from intended intervention would only occur when the probability of deviations differs by intervention. Otherwise this domain is assessed exactly as for parallel group trials (see knowledge_parallel.json, domain 2)."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Bias due to missing outcome data",
+      "questions": [
+        {
+          "id": "3.1",
+          "text": "Were data for this outcome available for all, or nearly all, participants randomized?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials. 'Nearly all' usually means around 95% for continuous outcomes; for binary outcomes the proportion that matters depends on the risk of the event.",
+          "relevant_guidance_sections": [
+            "main 6"
+          ]
+        },
+        {
+          "id": "3.2",
+          "text": "Is there evidence that the result was not biased by missing outcome data?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N"
+          ],
+          "condition": "Asked only if N/PN/NI to 3.1; otherwise NA",
+          "elaboration": "As for parallel group trials. Evidence could be an appropriate analysis that accounts for missingness (e.g. under MNAR assumptions) or a sensitivity analysis showing the result is robust.",
+          "relevant_guidance_sections": [
+            "main 6"
+          ]
+        },
+        {
+          "id": "3.3",
+          "text": "Could missingness in the outcome depend on its true value?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if N/PN to 3.2; otherwise NA",
+          "elaboration": "As for parallel group trials. Consider whether missingness could be related to the outcome's true value (e.g. participants in poor health withdrawing).",
+          "relevant_guidance_sections": [
+            "main 6"
+          ]
+        },
+        {
+          "id": "3.4",
+          "text": "Is it likely that missingness in the outcome depended on its true value?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if Y/PY/NI to 3.3; otherwise NA",
+          "elaboration": "As for parallel group trials. Consider reasons for missingness and whether they differ between interventions in a way related to the true outcome value.",
+          "relevant_guidance_sections": [
+            "main 6"
+          ]
+        }
+      ],
+      "algorithm_note": "Domain 3 algorithm is identical to parallel (main tool Tables 9/10). algorithm_crossover.py reuses the parallel Domain 3 table. See knowledge_parallel.json domain 3 for full detailed_guidance. Note: when carrying observations forward, the crossover guidance warns that observations carried forward may have been made before carryover effects disappeared.",
+      "detailed_guidance": []
+    },
+    {
+      "id": 4,
+      "name": "Bias in measurement of the outcome",
+      "questions": [
+        {
+          "id": "4.1",
+          "text": "Was the method of measuring the outcome inappropriate?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials.",
+          "relevant_guidance_sections": [
+            "main 7"
+          ]
+        },
+        {
+          "id": "4.2",
+          "text": "Could measurement or ascertainment of the outcome have differed between interventions within each sequence?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials, but phrased for crossover: could measurement or ascertainment differ between the two interventions WITHIN each sequence (since each participant receives both interventions).",
+          "relevant_guidance_sections": [
+            "main 7"
+          ]
+        },
+        {
+          "id": "4.3",
+          "text": "Were outcome assessors aware of the intervention received by study participants?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if N/PN/NI to 4.1 and 4.2; otherwise NA",
+          "elaboration": "As for parallel group trials. Consider whether the outcome assessor (which may be the participant for participant-reported outcomes) knew the intervention received.",
+          "relevant_guidance_sections": [
+            "main 7"
+          ]
+        },
+        {
+          "id": "4.4",
+          "text": "Could assessment of the outcome have been influenced by knowledge of intervention received?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if Y/PY/NI to 4.3; otherwise NA",
+          "elaboration": "As for parallel group trials. More of a concern for subjective outcomes than objective ones.",
+          "relevant_guidance_sections": [
+            "main 7"
+          ]
+        },
+        {
+          "id": "4.5",
+          "text": "Is it likely that assessment of the outcome was influenced by knowledge of intervention received?",
+          "options": [
+            "NA",
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": "Asked only if Y/PY/NI to 4.4; otherwise NA",
+          "elaboration": "As for parallel group trials. Consider whether the nature of the outcome, and the assessors' awareness, make influence likely.",
+          "relevant_guidance_sections": [
+            "main 7"
+          ]
+        }
+      ],
+      "algorithm_note": "Domain 4 algorithm is identical to parallel (main tool Tables 11/12); 'Issues in measurement of outcomes are the same for crossover trials as for parallel group trials.' Only 4.2 wording adds 'within each sequence'. algorithm_crossover.py reuses the parallel Domain 4 table. See knowledge_parallel.json domain 4 for full detailed_guidance.",
+      "detailed_guidance": []
+    },
+    {
+      "id": 5,
+      "name": "Bias in selection of the reported result",
+      "questions": [
+        {
+          "id": "5.1",
+          "text": "Were the data that produced this result analysed in accordance with a pre-specified analysis plan that was finalized before unblinded outcome data were available for analysis?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials. Requires access to a pre-specified analysis plan (protocol/SAP) finalized before unblinded data were available.",
+          "relevant_guidance_sections": [
+            "main 8",
+            "xover 7"
+          ]
+        },
+        {
+          "id": "5.2",
+          "text": "Is the numerical result being assessed likely to have been selected, on the basis of the results, from multiple eligible outcome measurements (e.g. scales, definitions, time points) within the outcome domain?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials.",
+          "relevant_guidance_sections": [
+            "main 8"
+          ]
+        },
+        {
+          "id": "5.3",
+          "text": "Is the numerical result being assessed likely to have been selected, on the basis of the results, from multiple eligible analyses of the data?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "As for parallel group trials, with crossover-specific considerations: selection could be of an unpaired analysis (ignoring the within-participant design) on the basis of the results, or selection driven by whether period effects were included. The result of an unpaired analysis will generally be less likely to suggest an intervention effect (artificially wide CIs).",
+          "relevant_guidance_sections": [
+            "main 8",
+            "xover 7"
+          ]
+        },
+        {
+          "id": "5.4",
+          "text": "Is a result based on data from both periods sought, but unavailable on the basis of carryover having been identified?",
+          "options": [
+            "Y",
+            "PY",
+            "PN",
+            "N",
+            "NI"
+          ],
+          "condition": null,
+          "elaboration": "This question addresses the situation in which only results from the first period are reported on the basis of a test for carryover. (Such a two-stage analysis - choosing whether to use both periods or only the first based on a preliminary carryover test - has been discredited but is still used.) Answer 'N' if data from both periods contribute to the result being assessed for risk of bias.",
+          "relevant_guidance_sections": [
+            "xover 7"
+          ]
+        }
+      ],
+      "algorithm": [
+        {
+          "selected_group": "any YPY",
+          "5.1": "any",
+          "judgement": "High"
+        },
+        {
+          "selected_group": "at least one NI, none YPY",
+          "5.1": "any",
+          "judgement": "Some concerns"
+        },
+        {
+          "selected_group": "all NPN",
+          "5.1": "YPY",
+          "judgement": "Low"
+        },
+        {
+          "selected_group": "all NPN",
+          "5.1": "NPN|NI",
+          "judgement": "Some concerns"
+        }
+      ],
+      "algorithm_note": "Transcribed from Figure 7 of the official crossover guidance. The 'selected from' group is {5.2, 5.3, 5.4}. If any of 5.2/5.3/5.4 is Y/PY -> High. If at least one of them is NI and none is Y/PY -> Some concerns. If all of 5.2/5.3/5.4 are N/PN -> consult 5.1: Y/PY -> Low, N/PN/NI -> Some concerns. This is exactly the parallel Domain 5 algorithm with 5.4 added to the selection group.",
+      "detailed_guidance": [
+        {
+          "section": "xover 7",
+          "title": "Domain 5: Bias in selection of the reported result (crossover)",
+          "text": "In addition to the parallel-group considerations, a crossover-specific concern is whether the reported result was selected on the basis of a test for carryover (a discredited two-stage approach in which only first-period data are reported when a preliminary test suggests carryover). Question 5.4 captures this: answer 'N' if data from both periods contribute to the result being assessed. Selecting an unpaired analysis, or selecting whether to include period effects, on the basis of the results, is captured under 5.3. See knowledge_parallel.json domain 5 for the shared detailed_guidance."
+        }
+      ]
+    }
+  ],
+  "overall_judgement": {
+    "Low": "The study is judged to be at low risk of bias for all domains for this result.",
+    "Some concerns": "The study is judged to raise some concerns in at least one domain for this result, but not to be at high risk of bias for any domain.",
+    "High": "The study is judged to be at high risk of bias in at least one domain for this result. Or the study is judged to have some concerns for multiple domains in a way that substantially lowers confidence in the result."
+  },
+  "preliminary_considerations": "[CROSSOVER DESIGN] Crossover trials allocate each participant to a SEQUENCE of interventions (e.g. AB or BA in a simple two-intervention, two-period AB/BA design). The allocation is not to a particular intervention but to a particular sequence. This variant addresses two-intervention, two-period (AB/BA) crossover trials. Analysis should take advantage of the within-participant (paired) design. The tool can be used when (a) both periods were analysed appropriately (paired), (b) both periods were analysed inappropriately (as a parallel trial with double the sample), or (c) only first-period data were analysed (effectively a parallel trial). When only first-period data contribute to the result, examine only the first period when answering the signalling questions.\n\nBefore completing the risk-of-bias assessment, it is helpful to document important characteristics of the\nassessment, such as the design of the trial, the outcome being assessed (as well as the specific result being\nassessed), and whether interest focusses on the effect of assignment to intervention or the effect of adhering to\nintervention. Review authors should document the sources that are used to complete the assessment (as many\nsources as possible should be used in practice). The RoB 2 standard template includes questions to capture these\ndetails (Box 2), and to ensure clarity on which intervention is being referred to as ‘experimental’ and which as\n‘comparator’ within the assessment.\n\n\fBox 2. The RoB 2 tool (part 1): Preliminary considerations\nStudy design\n\n\nIndividually-randomized parallel-group trial\n\n\n\nCluster-randomized parallel-group trial\n\n\n\nIndividually randomized cross-over (or other matched) trial\n\nFor the purposes of this assessment, the interventions being compared are defined as\n: Experimental:\n\nComparator:\n\nSpecify which outcome is being assessed for risk of bias\nSpecify the numerical result being assessed. In case of multiple\nalternative analyses being presented, specify the numeric result\n(e.g. RR = 1.52 (95% CI 0.83 to 2.77) and/or a reference (e.g. to\na table, figure or paragraph) that uniquely defines the result\nbeing assessed.\nIs the review team’s aim for this result…?\n\n\nto assess the effect of assignment to intervention (the ‘intention-to-treat’ effect)\n\n\n\nto assess the effect of adhering to intervention (the ‘per-protocol’ effect)\n\nIf the aim is to assess the effect of adhering to intervention, select the deviations from intended\nintervention that should be addressed (at least one must be checked):\n\n\n\n\noccurrence of non-protocol interventions\nfailures in implementing the intervention that could have affected the outcome\nnon-adherence to their assigned intervention by trial participants\n\nWhich of the following sources were obtained to help inform the risk-of-bias assessment? (tick as many as apply)\n\n\n\n\n\n\n\n\n\n\n\n\n\nJournal article(s)\nTrial protocol\nStatistical analysis plan (SAP)\nNon-commercial trial registry record (e.g. ClinicalTrials.gov record)\nCompany-owned trial registry record (e.g. GSK Clinical Study Register record)\n‘Grey literature’ (e.g. unpublished thesis)\nConference abstract(s) about the trial\nRegulatory document (e.g. Clinical Study Report, Drug Approval Package)\nResearch ethics application\nGrant database summary (e.g. NIH RePORTER or Research Councils UK Gateway to Research)\nPersonal communication with trialist\nPersonal communication with the sponsor",
+  "domain2_adhering": {
+    "name": "Bias due to deviations from intended interventions (effect of adhering to intervention)",
+    "note": "Per-protocol effect. Questions 2.3-2.5 are each assessed only if the review's preliminary considerations put that concern in scope; this tool assesses all three by default.",
+    "questions": [
+      {
+        "id": "2.1",
+        "text": "Were participants aware of their assigned intervention during the trial?",
+        "options": [
+          "Y",
+          "PY",
+          "PN",
+          "N",
+          "NI"
+        ],
+        "condition": null,
+        "elaboration": "If participants are aware of their assigned intervention it is more likely that health-related behaviours will differ between the intervention groups. Blinding participants, most commonly through use of a placebo or sham intervention, may prevent such differences. If participants experienced side effects or toxicities that they knew to be specific to one of the interventions, answer this question ‘Yes’ or ‘Probably yes’.",
+        "relevant_guidance_sections": [
+          "5.1.3"
+        ]
+      },
+      {
+        "id": "2.2",
+        "text": "Were carers and people delivering the interventions aware of participants' assigned intervention during the trial?",
+        "options": [
+          "Y",
+          "PY",
+          "PN",
+          "N",
+          "NI"
+        ],
+        "condition": null,
+        "elaboration": "If carers or people delivering the interventions are aware of the assigned intervention then its implementation, or administration of non-protocol interventions, may differ between the intervention groups. Blinding may prevent such differences. If participants experienced side effects or toxicities that carers or people delivering the interventions knew to be specific to one of the interventions, answer ‘Yes’ or ‘Probably yes’. If randomized allocation was not concealed, then it is likely that carers and people delivering the interventions were aware of participants' assigned intervention during the trial.",
+        "relevant_guidance_sections": [
+          "5.1.3"
+        ]
+      },
+      {
+        "id": "2.3",
+        "text": "Were important non-protocol interventions balanced across intervention groups?",
+        "options": [
+          "NA",
+          "Y",
+          "PY",
+          "PN",
+          "N",
+          "NI"
+        ],
+        "condition": "Asked only if Y/PY/NI to 2.1 or 2.2 (and the assessment addresses imbalance of non-protocol interventions)",
+        "elaboration": "This question is asked only if the preliminary considerations specify that the assessment will address imbalance of important non-protocol interventions between intervention groups. Important non-protocol interventions are the additional interventions or exposures that: (1) are inconsistent with the trial protocol; (2) trial participants might receive with or after starting their assigned intervention; and (3) are prognostic for the outcome. Risk of bias will be higher if there is imbalance in such interventions between the intervention groups.",
+        "relevant_guidance_sections": [
+          "5.1.1",
+          "5.3.2"
+        ]
+      },
+      {
+        "id": "2.4",
+        "text": "Were there failures in implementing the intervention that could have affected the outcome?",
+        "options": [
+          "NA",
+          "Y",
+          "PY",
+          "PN",
+          "N",
+          "NI"
+        ],
+        "condition": "Asked only if the assessment addresses implementation failures",
+        "elaboration": "This question is asked only if the preliminary considerations specify that the assessment will address failures in implementing the intervention that could have affected the outcome. Risk of bias will be higher if the intervention was not implemented as intended by, for example, the health care professionals delivering care. Answer ‘No’ or ‘Probably no’ if implementation of the intervention was successful for most participants.",
+        "relevant_guidance_sections": [
+          "5.3.2"
+        ]
+      },
+      {
+        "id": "2.5",
+        "text": "Was there non-adherence to the assigned intervention regimen that could have affected participants' outcomes?",
+        "options": [
+          "NA",
+          "Y",
+          "PY",
+          "PN",
+          "N",
+          "NI"
+        ],
+        "condition": "Asked only if the assessment addresses non-adherence",
+        "elaboration": "This question is asked only if the preliminary considerations specify that the assessment will address non-adherence that could have affected participants’ outcomes. Non-adherence includes imperfect compliance with a sustained intervention, cessation of intervention, crossovers to the comparator intervention and switches to another active intervention. Consider available information on the proportion of study participants who continued with their assigned intervention throughout follow up, and answer ‘Yes’ or ‘Probably yes’ if the proportion who did not adhere is high enough to raise concerns. Answer ‘No’ for studies of interventions that are administered once, so that imperfect adherence is not possible, and all or most participants received the assigned intervention.",
+        "relevant_guidance_sections": [
+          "5.3.2"
+        ]
+      },
+      {
+        "id": "2.6",
+        "text": "Was an appropriate analysis used to estimate the effect of adhering to intervention?",
+        "options": [
+          "NA",
+          "Y",
+          "PY",
+          "PN",
+          "N",
+          "NI"
+        ],
+        "condition": "Asked only if N/PN/NI to 2.3, or Y/PY/NI to 2.4 or 2.5",
+        "elaboration": "Both ‘ naïve ‘per-protocol’ analyses (excluding trial participants who did not receive their allocated intervention) and ‘as treated’ analyses (comparing trial participants according to the intervention they actually received) will usually be inappropriate for estimating the effect of adhering to intervention (the ‘per-protocol’ effect). However, it is possible to use data from a randomized trial to derive an unbiased estimate of the effect of adhering to intervention. Examples of appropriate methods include: (1) instrumental variable analyses to estimate the effect of receiving the assigned intervention in trials in which a single intervention, administered only at baseline and with all-or-nothing adherence, is compared with standard care; and (2) inverse probability weighting to adjust for censoring of participants who cease adherence to their assigned intervention, in trials of sustained treatment strategies. These methods depend on strong assumptions, which should be appropriate and justified if the answer to this question is ‘Yes’ or ‘Probably yes’. It is possible that a paper reports an analysis based on such methods without reporting information on the deviations from intended intervention, but it would be hard to judge such an analysis to be appropriate in the absence of such information. If an important non-protocol intervention was administered to all participants in one intervention group, adjustments cannot be made to overcome this. Some examples of analysis strategies that would not be appropriate to estimate the effect of adhering to intervention are (i) ‘Intention to treat (ITT) analysis’, (ii) ‘per protocol analysis’, (iii) ‘as-treated analysis’, (iv) ‘analysis by treatment received’.",
+        "relevant_guidance_sections": [
+          "5.3.2"
+        ]
+      }
+    ],
+    "algorithm": [
+      {
+        "rule": "not aware (both 2.1 & 2.2 N/PN), no implementation failure (2.4 N/PN/NA) and adhered (2.5 N/PN/NA)",
+        "judgement": "Low"
+      },
+      {
+        "rule": "aware, non-protocol balanced or NA (2.3 Y/PY/NA), no failure (2.4 N/PN/NA), adhered (2.5 N/PN/NA)",
+        "judgement": "Low"
+      },
+      {
+        "rule": "a deviation concern exists AND appropriate analysis used (2.6 Y/PY)",
+        "judgement": "Some concerns"
+      },
+      {
+        "rule": "a deviation concern exists AND appropriate analysis NOT used (2.6 N/PN/NI)",
+        "judgement": "High"
+      }
+    ]
+  }
+}

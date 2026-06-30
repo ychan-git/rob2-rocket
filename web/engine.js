@@ -98,6 +98,7 @@ export class RoB2Engine {
     pdfBase64,
     resultOutcome = "",
     effect = "assignment",
+    design = "parallel",
     model = "claude-sonnet-4-6",
     cacheTtl = "5m",
     provider = "anthropic",
@@ -108,6 +109,9 @@ export class RoB2Engine {
     this.model = model;
     this.cacheTtl = cacheTtl;
     this.effect = effect === "adhering" ? "adhering" : "assignment";
+    // Crossover adds Domain S and 5.4 and changes the D1/D5 algorithm; the KB passed in
+    // is the crossover variant when design === "crossover" (index.html fetches it).
+    this.design = design === "crossover" ? "crossover" : "parallel";
     this.result = resultOutcome || "(the trial's primary outcome)";
     this.domains = this._activeDomains();
     this.systemText = this._buildSystemText();
@@ -130,6 +134,7 @@ export class RoB2Engine {
       status: "idle",
       model: this.model,
       effect: this.effect,
+      design: this.design,
       result: this.result,
       current: {}, // { [domainId]: qid|null } — one in-flight question per parallel domain
       answers: {},
@@ -305,7 +310,7 @@ export class RoB2Engine {
       const qid = q.id;
       // Check applicability BEFORE announcing as current — avoids a transient state
       // where the UI shows current=2.7 while 2.6=N (lighting the wrong flowchart arc).
-      if (!isApplicable(qid, this.state.answers, this.effect)) {
+      if (!isApplicable(qid, this.state.answers, this.effect, this.design)) {
         this.state.answers[qid] = {
           answer: "NA",
           quote: "",
@@ -366,7 +371,7 @@ export class RoB2Engine {
     for (const dom of this.domains) {
       const qids = dom.questions.map((q) => q.id);
       if (qid === qids[qids.length - 1] && qids.every((q) => q in this.state.answers)) {
-        this.state.domains[dom.id] = judgeDomain(dom.id, this.state.answers, this.effect);
+        this.state.domains[dom.id] = judgeDomain(dom.id, this.state.answers, this.effect, this.design);
       }
     }
   }

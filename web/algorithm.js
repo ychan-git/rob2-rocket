@@ -36,8 +36,17 @@ function toGroups(answers) {
 // Decide whether a question must be answered, given answers collected so far.
 // Returns true if the question is applicable (should be sent to the LLM),
 // false if it is Not Applicable (recorded as 'NA' without an LLM call).
-export function isApplicable(qid, answers, effect = "assignment") {
+export function isApplicable(qid, answers, effect = "assignment", design = "parallel") {
   const g = toGroups(answers);
+
+  // Crossover-only Domain S (period & carryover) routing. Added at the top, guarded
+  // by design, so the parallel/adhering paths below stay byte-for-byte unchanged.
+  // S.1 and S.3 are always asked; S.2 is only asked when S.1 is N/PN/NI.
+  if (design === "crossover") {
+    if (qid === "S.2") return g["S.1"] === "NPN" || g["S.1"] === "NI";
+    if (qid === "S.1" || qid === "S.3") return true;
+    // 5.4 (crossover-only) is always asked — it falls through to `return true` below.
+  }
 
   if (effect === "adhering") {
     // domain 2, effect of adhering to intervention (Box 7)
@@ -176,6 +185,35 @@ export function judgeDomain5(a) {
   return "Some concerns";
 }
 
+// ---- crossover-specific domains (RoB 2 for crossover trials, 18 Mar 2021) ------
+// Transcribed from the official algorithm flowchart figures; verified against the
+// figures by hand (Domain S = Fig 2, Domain 5 = Fig 7). 1:1 port of
+// algorithm_crossover.py's judge_domainS / judge_domain5.
+export function judgeDomainS(a) {
+  // Domain S — period & carryover effects (Figure 2). Routing starts at S.3 (carryover):
+  //   S.3 = N/PN -> High;  S.3 = NI -> Some concerns;
+  //   S.3 = Y/PY: S.1 = Y/PY -> Low; else S.2 = Y/PY -> Low, otherwise Some concerns.
+  const s3 = a["S.3"];
+  if (s3 === "NPN") return "High";
+  if (s3 === "NI") return "Some concerns";
+  // s3 === YPY
+  if (a["S.1"] === "YPY") return "Low";
+  // S.1 in NPN/NI -> S.2 decides
+  if (a["S.2"] === "YPY") return "Low";
+  return "Some concerns";
+}
+
+export function judgeDomain5Crossover(a) {
+  // Domain 5 — selection of the reported result, crossover variant (Figure 7).
+  // The 'selected-from' group is {5.2, 5.3, 5.4}:
+  //   any Y/PY -> High; else any NI -> Some concerns;
+  //   else (all N/PN): 5.1 = Y/PY -> Low, otherwise Some concerns.
+  const sel = [a["5.2"], a["5.3"], a["5.4"]];
+  if (sel.some((x) => x === "YPY")) return "High";
+  if (sel.some((x) => x === "NI")) return "Some concerns";
+  return a["5.1"] === "YPY" ? "Low" : "Some concerns";
+}
+
 export function combine(part1, part2) {
   if (part1 === "High" || part2 === "High") return "High";
   if (part1 === "Some concerns" || part2 === "Some concerns") return "Some concerns";
@@ -190,9 +228,12 @@ const DOMAIN_FUNCS = {
   5: judgeDomain5,
 };
 
-export function judgeDomain(domainId, answers, effect = "assignment") {
+export function judgeDomain(domainId, answers, effect = "assignment", design = "parallel") {
   // answers: {qid: {answer: 'PY', ...}}. Returns 'Low'|'Some concerns'|'High'.
+  // domainId may be 1, 'S', 2, 3, 4, or 5 ('S' and the 5.4-aware Domain 5 only for crossover).
   const a = toGroups(answers);
+  if (domainId === "S") return judgeDomainS(a);
+  if (domainId === 5 && design === "crossover") return judgeDomain5Crossover(a);
   if (domainId === 2 && effect === "adhering") return judgeDomain2Adhering(a);
   return DOMAIN_FUNCS[domainId](a);
 }
