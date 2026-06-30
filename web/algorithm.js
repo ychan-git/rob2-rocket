@@ -62,15 +62,20 @@ export function isApplicable(qid, answers, effect = "assignment", design = "para
         g["2.5"] === "YPY" || g["2.5"] === "NI"
       );
     }
-    // (no 2.7 in the adhering variant)
-    return true;
+    // (no 2.7 in the adhering variant). Do NOT return here: domains 3/4/5 routing
+    // below is identical for both effects, so let adhering fall through to it
+    // (mirrors algorithm_crossover.py / algorithm_parallel.py, which never early-return).
   }
 
-  // effect of assignment to intervention (Box 6) — default
-  if (qid === "2.3") return g["2.1"] === "YPY" || g["2.1"] === "NI" || g["2.2"] === "YPY" || g["2.2"] === "NI";
-  if (qid === "2.4") return g["2.3"] === "YPY";
-  if (qid === "2.5") return g["2.4"] === "YPY" || g["2.4"] === "NI";
-  if (qid === "2.7") return g["2.6"] === "NPN" || g["2.6"] === "NI";
+  // effect of assignment to intervention (Box 6) — domain-2 routing, ITT only.
+  // Guarded so the adhering effect (whose D2 qids already returned above) can't fall
+  // into the ITT-specific 2.x rules on its way down to the domain 3/4 routing.
+  if (effect !== "adhering") {
+    if (qid === "2.3") return g["2.1"] === "YPY" || g["2.1"] === "NI" || g["2.2"] === "YPY" || g["2.2"] === "NI";
+    if (qid === "2.4") return g["2.3"] === "YPY";
+    if (qid === "2.5") return g["2.4"] === "YPY" || g["2.4"] === "NI";
+    if (qid === "2.7") return g["2.6"] === "NPN" || g["2.6"] === "NI";
+  }
 
   if (qid === "3.2") return g["3.1"] === "NPN" || g["3.1"] === "NI";
   if (qid === "3.3") return g["3.2"] === "NPN";

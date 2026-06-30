@@ -74,6 +74,27 @@ assert.ok(
   isApplicable("2.6", mk({ "2.1": "N", "2.2": "N", "2.4": "N", "2.5": "Y" }), "adhering")
 );
 
+// --- adhering effect must still apply domain 3/4 conditional routing ---------
+// (Regression guard: a prior `return true` in the adhering branch skipped this routing,
+// always-asking 3.2-3.4 / 4.3-4.5 under PP. Domains 3/4/5 routing is effect-independent —
+// the effect only changes Domain 2 — so PP must route them exactly like ITT.)
+// Domain 3: 3.2 is NA when 3.1 = Y/PY (data near-complete), under either effect.
+assert.ok(!isApplicable("3.2", mk({ "3.1": "Y" }), "adhering"), "PP: 3.2 should be NA when 3.1=Y");
+assert.ok(isApplicable("3.2", mk({ "3.1": "N" }), "adhering"), "PP: 3.2 asked when 3.1=N");
+assert.ok(!isApplicable("3.3", mk({ "3.1": "N", "3.2": "Y" }), "adhering"), "PP: 3.3 NA when 3.2=Y");
+// Domain 4: 4.3 needs BOTH 4.1 and 4.2 in N/PN/NI; 4.5 needs 4.4 in Y/PY/NI.
+assert.ok(!isApplicable("4.3", mk({ "4.1": "Y", "4.2": "Y" }), "adhering"), "PP: 4.3 NA when 4.1/4.2=Y");
+assert.ok(!isApplicable("4.5", mk({ "4.1": "N", "4.2": "N", "4.3": "Y", "4.4": "N" }), "adhering"),
+  "PP: 4.5 NA when 4.4=N (the verdict-flip path that prompted the fix)");
+assert.ok(isApplicable("4.5", mk({ "4.1": "N", "4.2": "N", "4.3": "Y", "4.4": "Y" }), "adhering"),
+  "PP: 4.5 asked when 4.4=Y");
+// The flip path now resolves to Low under PP (4.5 stays NA, not a stray High).
+const ppD4 = judgeDomain(4, mk({ "4.1": "N", "4.2": "N", "4.3": "Y", "4.4": "N", "4.5": "NA" }), "adhering");
+assert.strictEqual(ppD4, "Low", ppD4);
+// Sanity: the same routing assertions hold for the assignment effect (unchanged behaviour).
+assert.ok(!isApplicable("3.2", mk({ "3.1": "Y" }), "assignment"));
+assert.ok(!isApplicable("4.5", mk({ "4.1": "N", "4.2": "N", "4.3": "Y", "4.4": "N" }), "assignment"));
+
 console.log("All self-tests passed (assignment + adhering).");
 
 // --- crossover variant (ported 1:1 from algorithm_crossover.py self-tests) ---
@@ -133,5 +154,12 @@ assert.deepStrictEqual(
   JSON.stringify(xdj)
 );
 assert.strictEqual(judgeOverall(xdj), "High");
+
+// crossover + adhering (PP): domain 3/4 routing must apply too (the previously-uncovered combo)
+assert.ok(!isApplicable("3.2", mk({ "3.1": "Y" }), "adhering", X), "crossover+PP: 3.2 NA when 3.1=Y");
+assert.ok(!isApplicable("4.5", mk({ "4.1": "N", "4.2": "N", "4.3": "Y", "4.4": "N" }), "adhering", X),
+  "crossover+PP: 4.5 NA when 4.4=N");
+// crossover Domain S routing is unaffected by the adhering effect
+assert.ok(!isApplicable("S.2", mk({ "S.1": "Y", "S.3": "Y" }), "adhering", X));
 
 console.log("All crossover self-tests passed (Domain S, 5.4, shared domains, overall).");
