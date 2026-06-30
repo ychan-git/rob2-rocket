@@ -12,6 +12,10 @@ venv/
 uploads/
 *.pdf
 
+# node (registry-worker deps + wrangler state)
+node_modules/
+.wrangler/
+
 # os
 .DS_Store
 

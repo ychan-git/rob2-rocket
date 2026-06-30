@@ -1,0 +1,14 @@
+{
+  "name": "rob2-registry-worker",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Trial-registry lookup proxy for RoB2 Rocket (Phase 1: ClinicalTrials.gov).",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

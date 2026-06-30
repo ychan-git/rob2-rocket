@@ -1,0 +1,12 @@
+# Cloudflare Worker config — deployed independently of the Pages site (web/).
+# Deploy:  cd registry-worker && npx wrangler deploy
+# This Worker is a stateless public proxy: it takes a public NCT id and returns a
+# normalized ClinicalTrials.gov record. No secrets, no bindings, no patient data.
+name = "rob2-registry"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+# After the first deploy you get a https://rob2-registry.<your-subdomain>.workers.dev URL.
+# To put it on a custom domain (e.g. registry.ebmrocket.com), add a route here once the
+# domain is on this Cloudflare account, then redeploy:
+# routes = [{ pattern = "registry.ebmrocket.com", custom_domain = true }]
