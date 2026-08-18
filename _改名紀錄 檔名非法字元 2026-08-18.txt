@@ -1,0 +1,12 @@
+檔名非法字元改名紀錄
+產生時間：2026-08-18 20:38
+專案：02 專業/3-1 實證｜RoB2 rocket
+共 2 筆
+原因：檔名含 " * : < > ? \ | 之一，這些字元在 OneDrive、Windows、ExFAT 外接碟都是非法的，
+      不改的話備份／同步會失敗。macOS 允許但屬例外。
+規則：': ' -> ' - '   ':' -> '-'   '"' -> "'"   '*' -> '_'   '?' -> 刪除
+還原：把下面每行的『新』改回『舊』即可（tab 分隔）
+================================================================================
+舊	新
+6.7 大承氣湯 Randomised clinical trial: the effects of daikenchuto, TU-100, on gastrointestinal and colonic transit, anorectal and bowel function in female patients with functional constipation.pdf	6.7 大承氣湯 Randomised clinical trial - the effects of daikenchuto, TU-100, on gastrointestinal and colonic transit, anorectal and bowel function in female patients with functional constipation.pdf
+0 Treatment of constipation in long-term care with Chinese herbal formula: a randomized, double-blind placebo-controlled trial  .pdf	0 Treatment of constipation in long-term care with Chinese herbal formula - a randomized, double-blind placebo-controlled trial.pdf
